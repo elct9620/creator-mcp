@@ -24,6 +24,19 @@ esac
 # --ignore-unknown 讓 prettier 自行跳過它不認得的副檔名
 [ -x "$PRETTIER" ] && "$PRETTIER" --ignore-unknown --write "$file" >/dev/null 2>&1
 
+# 規格有自己的正規形式，prettier 只管到排版為止。
+# sumi fmt 作用於整個 .spec/，所以只在規格本身被改動時才跑。
+case "$file" in
+"$ROOT"/.spec/*)
+	if command -v sumi >/dev/null 2>&1; then
+		if ! out="$(cd "$ROOT" && sumi fmt 2>&1)"; then
+			printf '規格無法正規化：\n%s\n' "$out" >&2
+			exit 2
+		fi
+	fi
+	;;
+esac
+
 # 型別檢查只對 TypeScript 有意義
 case "$file" in
 *.ts | *.tsx | *.mts | *.cts) ;;
