@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 #
-# PostToolUse hook：剛寫入的檔案立即符合專案的格式與型別約定，
-# 讓後續的每一步都建立在已經正確的檔案上，而不是留到回合結束才發現。
+# PostToolUse hook: bring a file just written in line with the project's
+# formatting and type rules, so every later step builds on a correct file
+# rather than discovering the problem at the end of the turn.
 #
-# stdin 為 Claude Code 的 hook 輸入 JSON；exit 2 會把 stderr 回饋給模型要求修正。
+# stdin carries Claude Code's hook input JSON; exit 2 hands stderr back to the
+# model for correction.
 
 set -uo pipefail
 
@@ -15,42 +17,43 @@ file="$(jq -r '.tool_response.filePath // .tool_input.file_path // empty')"
 [ -n "$file" ] || exit 0
 [ -f "$file" ] || exit 0
 
-# 專案外的檔案不套用本專案的規則
+# A file outside the project does not answer to the project's rules
 case "$file" in
 "$ROOT"/*) ;;
 *) exit 0 ;;
 esac
 
-# --ignore-unknown 讓 prettier 自行跳過它不認得的副檔名
+# --ignore-unknown lets prettier skip the extensions it does not recognize
 [ -x "$PRETTIER" ] && "$PRETTIER" --ignore-unknown --write "$file" >/dev/null 2>&1
 
-# 規格有自己的正規形式，prettier 只管到排版為止。
-# sumi fmt 作用於整個 .spec/，所以只在規格本身被改動時才跑。
+# A specification has a normal form of its own, which prettier only reaches the
+# layout of. sumi fmt acts on the whole of .spec/, so it runs only when a
+# specification is what changed.
 case "$file" in
 "$ROOT"/.spec/*)
 	if command -v sumi >/dev/null 2>&1; then
 		if ! out="$(cd "$ROOT" && sumi fmt 2>&1)"; then
-			printf '規格無法正規化：\n%s\n' "$out" >&2
+			printf 'Specification could not be normalized:\n%s\n' "$out" >&2
 			exit 2
 		fi
 	fi
 	;;
 esac
 
-# 型別檢查只對 TypeScript 有意義
+# Type checking only means something for TypeScript
 case "$file" in
 *.ts | *.tsx | *.mts | *.cts) ;;
 *) exit 0 ;;
 esac
 [ -x "$TSC" ] || exit 0
 
-# test/ 有自己的 tsconfig（cloudflare:test 型別），與 src/ 分開檢查
+# test/ carries its own tsconfig for the cloudflare:test types, checked apart from src/
 case "$file" in
 "$ROOT"/test/*) project="$ROOT/test/tsconfig.json" ;;
 *) project="$ROOT/tsconfig.json" ;;
 esac
 
 if ! out="$("$TSC" --noEmit -p "$project" 2>&1)"; then
-	printf '型別檢查未通過（%s）：\n%s\n' "${project#"$ROOT"/}" "$out" >&2
+	printf 'Type check failed (%s):\n%s\n' "${project#"$ROOT"/}" "$out" >&2
 	exit 2
 fi

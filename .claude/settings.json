@@ -9,7 +9,7 @@
 						"type": "command",
 						"command": "\"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/edit.sh\"",
 						"timeout": 120,
-						"statusMessage": "格式化與型別檢查"
+						"statusMessage": "Formatting and type check"
 					}
 				]
 			}
@@ -21,7 +21,7 @@
 						"type": "command",
 						"command": "\"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/stop.sh\"",
 						"timeout": 300,
-						"statusMessage": "測試、規格與型別驗證"
+						"statusMessage": "Tests, specification and types"
 					}
 				]
 			}
