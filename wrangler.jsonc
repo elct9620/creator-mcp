@@ -38,6 +38,16 @@
 		"required": ["TEAM_NAME", "POLICY_AUD"],
 	},
 	/**
+	 * Workers AI runs the image model the MCP endpoint offers. This binding
+	 * has no local simulation: every call reaches the account and is billed,
+	 * `wrangler dev` included, which is why the test suite closes remote
+	 * bindings off rather than holding one of these.
+	 * https://developers.cloudflare.com/workers/development-testing/bindings-per-env/
+	 */
+	"ai": {
+		"binding": "AI",
+	},
+	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */

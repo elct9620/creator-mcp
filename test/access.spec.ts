@@ -3,11 +3,13 @@ import { SignJWT, exportJWK, generateKeyPair } from 'jose';
 import { http, HttpResponse } from 'msw';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import app from '../src/index';
+import { unreachableAi } from './workers-ai';
 
 const ENV = {
 	DEBUG: 'false',
 	TEAM_NAME: 'creator',
 	POLICY_AUD: 'test-policy-aud',
+	AI: unreachableAi(),
 } satisfies Env;
 
 const TEAM_DOMAIN = `https://${ENV.TEAM_NAME}.cloudflareaccess.com`;

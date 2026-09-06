@@ -1,6 +1,7 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import app from '../src/index';
+import { unreachableAi } from './workers-ai';
 
 // What Access admits is settled in its own feature; this one asks what the
 // endpoint answers once a caller is through.
@@ -8,6 +9,7 @@ const ENV = {
 	DEBUG: 'true',
 	TEAM_NAME: 'creator',
 	POLICY_AUD: 'test-policy-aud',
+	AI: unreachableAi(),
 } satisfies Env;
 
 // The transport never dials this URL: every request it makes is served by the
