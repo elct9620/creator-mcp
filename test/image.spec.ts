@@ -74,8 +74,8 @@ const createImage = (args: Record<string, unknown>) => client.callTool({ name: '
 
 type Content = Awaited<ReturnType<Client['callTool']>>['content'];
 
-// Every promise below is about one block of the reply, not about where in the
-// reply it sits.
+// A promise about the link or the text is a promise about that block, not about
+// where in the reply it sits.
 const linkIn = (content: Content) => content?.find(({ type }) => type === 'resource_link');
 const textIn = (content: Content) => content?.find(({ type }) => type === 'text');
 
@@ -230,6 +230,6 @@ describe('image generation', () => {
 	it('should say how long the link stands when it states it in text', async () => {
 		const { content } = await createImage({ prompt: 'a red bicycle' });
 
-		expect(textIn(content)).toMatchObject({ text: expect.stringMatching(/day/) });
+		expect(textIn(content)).toMatchObject({ text: expect.stringMatching(/about a day/) });
 	});
 });
