@@ -9,10 +9,10 @@
 	"compatibility_date": "2026-09-03",
 	/**
 	 * Every step this Worker takes is a wait on something else, so an
-	 * invocation record is where a failure becomes visible at all. Traces are
-	 * named rather than left to the default because Cloudflare intends to start
-	 * them alongside logs under a bare `enabled`, and they bill at the logs rate
-	 * from 2026-10-01 — a cost nothing here asks for.
+	 * invocation record is where a failure becomes visible at all. A trace is
+	 * what says which of those waits was the slow one — logs alone cannot, since
+	 * they carry no span. Traces bill at the logs rate from 2026-10-01, and that
+	 * is what the answer costs.
 	 * https://developers.cloudflare.com/workers/observability/traces/
 	 */
 	"observability": {
@@ -21,7 +21,7 @@
 			"invocation_logs": true,
 		},
 		"traces": {
-			"enabled": false,
+			"enabled": true,
 		},
 	},
 	"upload_source_maps": true,
