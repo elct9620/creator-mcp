@@ -38,8 +38,9 @@ const ENDPOINT = new URL('https://creator.example.com/mcp');
 // A binding assigned here is what the Worker answers with, so every client
 // states the model and gateway its own test is about. Whatever the last one
 // set stays until the next one says otherwise, which is why both are named
-// every time rather than only the one under test.
-const connect = async (ai: Ai, AI_GATEWAY = '') => {
+// every time rather than only the one under test. A deployment names a gateway
+// by setting a secret, so naming none here leaves the binding undefined.
+const connect = async (ai: Ai, AI_GATEWAY?: string) => {
 	Object.assign(env, { AI: ai, AI_GATEWAY });
 
 	const client = new Client({ name: 'test-harness', version: '0.0.0' });
@@ -186,11 +187,20 @@ describe('image generation', () => {
 		await routed.close();
 	});
 
+	// A secret nobody set and a secret set to nothing are both a deployment
+	// naming no gateway, and an empty name is the one the model refuses.
 	// @behavior I-012
-	it('should reach the model directly when a deployment names no gateway', async () => {
-		await createImage({ prompt: 'a red bicycle' });
+	it.each([
+		['no secret is set', undefined],
+		['the secret is empty', ''],
+	])('should reach the model directly when %s', async (_, AI_GATEWAY) => {
+		const workersAi = aiAnswering(answering(IMAGE));
+		const direct = await connect(workersAi.ai, AI_GATEWAY);
 
-		expect(generations[0].options?.gateway).toBeUndefined();
+		await direct.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
+
+		expect(workersAi.generations[0].options?.gateway).toBeUndefined();
+		await direct.close();
 	});
 
 	// @behavior I-013
