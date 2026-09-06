@@ -14,6 +14,19 @@ the one model that happens to serve it today reads as no decision at all, and
 then a second model arrives and the name has to change — a rename the caller
 pays for, to record something that was never theirs to know.
 
+## painter
+
+One model's account of how much of a tool's vocabulary it answers to, and what
+it calls each part of it: which encodings it can store, which resolutions it
+can produce, and what it calls the resolution it is asked for.
+
+A painter is the same kind of account a speaker gives, for a model that paints
+rather than speaks, and it is what lets a single flat schema stay honest across
+models that disagree: `google/nano-banana-pro` asks for `image_size` and can
+store webp, `google/nano-banana-2` asks for `resolution` and cannot. It is not
+a style, and not a model — a model is what is named in a call, a painter is
+what this application knows about that model.
+
 ## speaker
 
 One model's account of how much of a tool's vocabulary it answers to, and what
