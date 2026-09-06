@@ -2,6 +2,7 @@ import { createMcpHandler, McpServer, originValidationResponse } from '@modelcon
 import { Hono } from 'hono';
 import { name, version } from '../package.json';
 import { accessGuard } from './access';
+import { registerCreateAudio } from './audio';
 import { registerCreateImage } from './image';
 
 const gatewayFor = ({ AI_GATEWAY }: Env): AiOptions | undefined => (AI_GATEWAY ? { gateway: { id: AI_GATEWAY } } : undefined);
@@ -15,7 +16,9 @@ const gatewayFor = ({ AI_GATEWAY }: Env): AiOptions | undefined => (AI_GATEWAY ?
 const handlerFor = (env: Env) =>
 	createMcpHandler(() => {
 		const server = new McpServer({ name, version });
-		registerCreateImage(server, env.AI, gatewayFor(env));
+		const gateway = gatewayFor(env);
+		registerCreateImage(server, env.AI, gateway);
+		registerCreateAudio(server, env.AI, gateway);
 
 		return server;
 	});
