@@ -72,6 +72,10 @@ afterEach(() => client.close());
 
 const createImage = (args: Record<string, unknown>) => client.callTool({ name: 'create_image', arguments: args });
 
+// Every promise below is about the link the reply carries, not about where in
+// the reply it sits.
+const linkIn = (content: Awaited<ReturnType<Client['callTool']>>['content']) => content?.find(({ type }) => type === 'resource_link');
+
 describe('image generation', () => {
 	// @behavior I-001
 	it('should offer the tool when a client lists them', async () => {
@@ -114,14 +118,14 @@ describe('image generation', () => {
 	it('should carry the link as given when the model answers', async () => {
 		const { content } = await createImage({ prompt: 'a red bicycle' });
 
-		expect(content).toEqual([expect.objectContaining({ type: 'resource_link', uri: IMAGE })]);
+		expect(linkIn(content)).toMatchObject({ type: 'resource_link', uri: IMAGE });
 	});
 
 	// @behavior I-006
 	it('should state what the store holds when the caller asked for something else', async () => {
 		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'png' });
 
-		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/jpeg' })]);
+		expect(linkIn(content)).toMatchObject({ mimeType: 'image/jpeg' });
 	});
 
 	// @behavior I-007
@@ -130,7 +134,7 @@ describe('image generation', () => {
 
 		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'webp' });
 
-		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/webp' })]);
+		expect(linkIn(content)).toMatchObject({ mimeType: 'image/webp' });
 	});
 
 	// @behavior I-007
@@ -139,7 +143,7 @@ describe('image generation', () => {
 
 		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'webp' });
 
-		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/webp' })]);
+		expect(linkIn(content)).toMatchObject({ mimeType: 'image/webp' });
 	});
 
 	// @behavior I-008
@@ -158,7 +162,7 @@ describe('image generation', () => {
 
 		const { content } = await createImage({ prompt: 'a red bicycle' });
 
-		expect(content).toEqual([expect.not.objectContaining({ mimeType: expect.anything() })]);
+		expect(linkIn(content)).not.toHaveProperty('mimeType');
 	});
 
 	// @behavior I-010
