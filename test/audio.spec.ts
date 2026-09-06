@@ -287,4 +287,31 @@ describe('audio generation', () => {
 
 		expect(generations[0].inputs).toStrictEqual({ text: 'the tide is turning', voice_id: 'JBFqnCBsd6RMkjVDRZzb' });
 	});
+	// The refusal exists so the caller can ask again, which it can only do if
+	// the reason reaches it. `isError` alone would leave it guessing.
+	// @behavior AU-021
+	it('should say the way out when it refuses', async () => {
+		const result = await createAudio({
+			text: 'the tide is turning',
+			model: 'elevenlabs/eleven-v3',
+			voice: 'JBFqnCBsd6RMkjVDRZzb',
+			speed: 1.5,
+		});
+
+		expect(textIn(result.content)).toMatchObject({ text: expect.stringContaining('Drop `speed`') });
+	});
+
+	// A per-model limit cannot be stated in a JSON Schema whose type must be
+	// object, so the argument's own description is the only place a caller can
+	// read it. Nothing else in this suite would notice it going missing.
+	// @behavior AU-022
+	it('should state what each model accepts on the arguments when a client lists the tools', async () => {
+		const { tools } = await client.listTools();
+		const properties = tools.find(({ name }) => name === 'create_audio')?.inputSchema.properties as
+			Record<string, { description?: string }> | undefined;
+
+		expect(properties?.voice.description).toContain('elevenlabs/eleven-v3 takes an ElevenLabs voice ID, and requires one');
+		expect(properties?.format.description).toContain('elevenlabs/eleven-v3 stores only mp3 or opus');
+		expect(properties?.speed.description).toContain('Only openai/tts-1 can vary it');
+	});
 });

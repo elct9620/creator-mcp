@@ -205,3 +205,19 @@ in translation rather than refused.
 | Given | a speed of 1 and a model that cannot vary      |
 | When  | `create_audio` is called                       |
 | Then  | the model speaks, and is not asked for a speed |
+
+## `AU-021` A refusal says the way out
+
+| Step  | Statement                                              |
+| ----- | ------------------------------------------------------ |
+| Given | a request the chosen model cannot honour               |
+| When  | `create_audio` refuses it                              |
+| Then  | the reply says in text what would let the call through |
+
+## `AU-022` The tool says what each model can be asked
+
+| Step  | Statement                                                             |
+| ----- | --------------------------------------------------------------------- |
+| Given | an endpoint serving the tool                                          |
+| When  | a client lists the tools                                              |
+| Then  | `create_audio` states on each argument which models accept what of it |
