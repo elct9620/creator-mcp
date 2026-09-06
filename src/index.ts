@@ -28,11 +28,11 @@ const ALLOWED_ORIGINS: string[] = [];
 const app = new Hono<{ Bindings: Env }>();
 
 // @route GET /
-// Reachable without an assertion: Access guards this at the edge, and a
+// Reachable without a check of its own: Access guards the Worker, and a
 // placeholder is all that is behind it until a dashboard is.
 app.get('/', (c) => c.text('Coming Soon'));
 
-app.use('/mcp', accessGuard());
+app.use('/mcp', accessGuard);
 
 // @route ALL /mcp
 app.all('/mcp', (c) => originValidationResponse(c.req.raw, ALLOWED_ORIGINS) ?? handlerFor(c.env).fetch(c.req.raw));

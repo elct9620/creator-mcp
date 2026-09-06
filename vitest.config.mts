@@ -13,14 +13,9 @@ export default defineConfig({
 			wrangler: { configPath: './wrangler.jsonc' },
 			// The pool derives bindings from wrangler.jsonc, which pulls in a
 			// local .dev.vars. Stating them here overrides that, so the suite
-			// answers to this file rather than to whatever each machine has —
-			// a local DEBUG=true would otherwise run every test through the
-			// Access bypass and still report green.
+			// answers to this file rather than to whatever each machine has.
 			miniflare: {
 				bindings: {
-					DEBUG: 'false',
-					TEAM_NAME: 'creator',
-					POLICY_AUD: 'test-policy-aud',
 					AI_GATEWAY: '',
 				},
 			},

@@ -3,6 +3,7 @@ import { setupNetwork } from '@msw/cloudflare';
 import { http, HttpResponse } from 'msw';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import app from '../src/index';
+import { arrivingMatched } from './access';
 import { aiAnswering, type Generation } from './workers-ai';
 
 // A link of the shape Workers AI really answers with: a presigned R2 URL whose
@@ -34,20 +35,14 @@ const answering = (image: string) => ({ state: 'Completed', result: { image } })
 
 const ENDPOINT = new URL('https://creator.example.com/mcp');
 
-// Access is settled in its own feature; DEBUG carries every caller here through.
-const envWith = (ai: Ai, AI_GATEWAY = ''): Env => ({
-	DEBUG: 'true',
-	TEAM_NAME: 'creator',
-	POLICY_AUD: 'test-policy-aud',
-	AI_GATEWAY,
-	AI: ai,
-});
+// Access is settled in its own feature; every caller here arrives matched.
+const envWith = (ai: Ai, AI_GATEWAY = ''): Env => ({ AI_GATEWAY, AI: ai });
 
 const connect = async (env: Env) => {
 	const client = new Client({ name: 'test-harness', version: '0.0.0' });
 	await client.connect(
 		new StreamableHTTPClientTransport(ENDPOINT, {
-			fetch: async (url, init) => app.fetch(new Request(url, init), env),
+			fetch: async (url, init) => app.fetch(new Request(url, init), env, arrivingMatched()),
 		}),
 	);
 

@@ -16,9 +16,9 @@ route, so each one is claimed in front of the code answering it.
 The host is reachable before anything is published on it, and this says so
 rather than leaving a caller to read a 404 as a wrong address.
 
-A placeholder is all that stands here, so the origin asks for no Access
-assertion of its own and leaves the guarding to the edge. Whatever replaces
-it will have to answer that question again.
+A placeholder is all that stands here, so the origin makes no check of its
+own and leaves the guarding to Access. Whatever replaces it will have to
+answer that question again.
 
 ## `ALL /mcp`
 

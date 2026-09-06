@@ -12,16 +12,18 @@
 	},
 	"upload_source_maps": true,
 	/**
-	 * Cloudflare Access guards the hostname this Worker is routed to. A
-	 * workers.dev subdomain would be a second origin outside that guard, so
-	 * there is none.
+	 * Cloudflare Access is attached to this Worker rather than to a hostname,
+	 * so it already covers every route, Custom Domain, preview and the
+	 * workers.dev subdomain. That subdomain stays closed because nothing needs
+	 * a second address, not because it would be unguarded.
+	 *
+	 * A worker-level policy does not carry WebSocket: an upgrade request is
+	 * answered 403. The MCP endpoint speaks Streamable HTTP, so none is asked
+	 * for here.
+	 * https://developers.cloudflare.com/workers/configuration/cloudflare-access/
 	 */
 	"workers_dev": false,
 	/**
-	 * DEBUG lifts the Access requirement so the MCP endpoint can be driven
-	 * locally, where no Access sits in front. It is false wherever this file
-	 * is deployed; only a local .dev.vars turns it on.
-	 *
 	 * AI_GATEWAY names the AI Gateway the models are reached through, which is
 	 * what decides how inference is billed and rate limited. An empty name
 	 * leaves the account's default gateway to answer, so this chooses which
@@ -30,20 +32,23 @@
 	 * file is the answer for a deployment, and .dev.vars overrides it locally.
 	 */
 	"vars": {
-		"DEBUG": "false",
 		"AI_GATEWAY": "",
 	},
 	/**
-	 * The Access team name and application audience tag, which is what
-	 * `cloudflareAccess()` asks for. Declaring them here
-	 * rather than letting them be inferred from .dev.vars keeps the generated
-	 * types the same for everyone, since .dev.vars is never committed; keeping
-	 * them out of `vars` keeps a deploy from overwriting what is set on the
-	 * Worker.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 * No Access stands in front of `wrangler dev`, so this stands in for one:
+	 * every local request arrives already matched, carrying this identity.
+	 * Removing the block is what drives the unmatched path by hand; the test
+	 * suite decides it per request instead. Nothing reads `aud`, so the real
+	 * application's tag never has to be written down here.
+	 * https://developers.cloudflare.com/workers/configuration/cloudflare-access/
 	 */
-	"secrets": {
-		"required": ["TEAM_NAME", "POLICY_AUD"],
+	"access": {
+		"dev": {
+			"aud": "local-dev",
+			"identity": {
+				"email": "developer@example.com",
+			},
+		},
 	},
 	/**
 	 * Workers AI runs the image model the MCP endpoint offers. This binding

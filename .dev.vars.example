@@ -1,12 +1,5 @@
-# Copy to .dev.vars. Local development has no Cloudflare Access in front of
-# the Worker, so DEBUG is what lets the MCP endpoint answer at all.
-DEBUG=true
-
-# The Access application these values name. Both are readable from Zero Trust >
-# Access controls > Applications; neither is a secret, but they belong here
-# rather than in wrangler.jsonc so that deploying never overwrites them.
-TEAM_NAME=your-team
-POLICY_AUD=your-application-audience-tag
+# Copy to .dev.vars. Cloudflare Access is simulated by the `access.dev` block
+# in wrangler.jsonc rather than by anything here.
 
 # The AI Gateway the models are reached through, which decides how inference is
 # billed and rate limited. Empty leaves the account's default gateway to answer.
