@@ -1,0 +1,80 @@
+# Every check the working tree answers to before a commit, run again on what
+# was actually pushed: formatting, both type projects, the test suite, and the
+# specification. A machine that never had the repository open is what makes
+# the answer trustworthy.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      sumi_version:
+        description: 'sumi release to verify with; empty follows the pinned version'
+        required: false
+        type: string
+
+# The specification is only as settled as the tool that reads it, so CI holds
+# the same sumi release as the working copies do. A dispatch can name another
+# release to see what a version bump would say before it is pinned here.
+env:
+  SUMI_VERSION: ${{ inputs.sumi_version || '0.1.0-preview8' }}
+
+# A push that supersedes an earlier one makes its answer irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # pnpm before Node, so setup-node finds the store it is asked to cache.
+      # The version comes from packageManager in package.json.
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # sumi ships as a release binary rather than a package. The checksums
+      # published alongside it are what says the download is the release.
+      - name: Install sumi
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/sumi"
+          gh release download "v${SUMI_VERSION}" --repo elct9620/sumitsubo \
+            --pattern "sumi-${SUMI_VERSION}-linux-x86_64.tar.gz" \
+            --pattern "sumi-${SUMI_VERSION}-checksums.txt" \
+            --dir "$dir"
+          # --ignore-missing: the file covers every platform, only one is here
+          (cd "$dir" && sha256sum --ignore-missing --check "sumi-${SUMI_VERSION}-checksums.txt")
+          tar -xzf "$dir/sumi-${SUMI_VERSION}-linux-x86_64.tar.gz" -C "$dir"
+          echo "$dir" >>"$GITHUB_PATH"
+
+      - name: Format
+        run: pnpm format:check
+
+      # src/ and test/ carry separate tsconfigs; naming each says which failed.
+      - name: Type check (src)
+        run: pnpm exec tsc --noEmit -p tsconfig.json
+
+      - name: Type check (test)
+        run: pnpm exec tsc --noEmit -p test/tsconfig.json
+
+      - name: Test
+        run: pnpm test:run
+
+      - name: Specification
+        run: sumi verify
