@@ -8,7 +8,7 @@ presigned and stands for a day, and it is handed on exactly as given: a call is
 one-shot, so the caller reaches the image while the link still stands, and the
 Worker never carries the image itself.
 
-The output format a caller asks for is not a promise about the stored image —
+The format a caller asks for is not a promise about the stored image —
 one asked for as PNG has come back stored as JPEG — so what the reply says
 about the encoding is read from the store rather than from the request. One
 byte is enough to be told: the store answers with the encoding while the image
@@ -66,9 +66,9 @@ long the link stands as well as where it points.
 
 | Step  | Statement                                          |
 | ----- | -------------------------------------------------- |
-| Given | an aspect ratio, an output format or an image size |
+| Given | an aspect ratio, a format or a resolution          |
 | When  | `create_image` is called with them                 |
-| Then  | the model receives each one as given               |
+| Then  | the model receives each one under the name it uses |
 
 ## `I-005` The image is linked rather than carried
 
@@ -165,3 +165,11 @@ long the link stands as well as where it points.
 | Given | a model answering with a link to the image it generated    |
 | When  | `create_image` replies                                     |
 | Then  | the reply states that link in text, and how long it stands |
+
+## `I-017` The resolution a caller names nothing for
+
+| Step  | Statement                      |
+| ----- | ------------------------------ |
+| Given | a call naming no resolution    |
+| When  | `create_image` generates       |
+| Then  | the image is generated at `1K` |

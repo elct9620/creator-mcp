@@ -107,10 +107,12 @@ describe('image generation', () => {
 		await createImage({
 			prompt: 'a red bicycle',
 			aspect_ratio: '16:9',
-			output_format: 'webp',
-			image_size: '2K',
+			format: 'webp',
+			resolution: '2K',
 		});
 
+		// The caller said `format` and `resolution`; the model is asked in its
+		// own words. Both halves differing is the translation being watched.
 		expect(generations[0].inputs).toMatchObject({
 			aspect_ratio: '16:9',
 			output_format: 'webp',
@@ -127,7 +129,7 @@ describe('image generation', () => {
 
 	// @behavior I-006
 	it('should state what the store holds when the caller asked for something else', async () => {
-		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'png' });
+		const { content } = await createImage({ prompt: 'a red bicycle', format: 'png' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'image/jpeg' });
 	});
@@ -136,7 +138,7 @@ describe('image generation', () => {
 	it('should state the format the caller asked for when the store will not say', async () => {
 		network.resetHandlers(storeRefusing());
 
-		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'webp' });
+		const { content } = await createImage({ prompt: 'a red bicycle', format: 'webp' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'image/webp' });
 	});
@@ -145,7 +147,7 @@ describe('image generation', () => {
 	it('should state the format the caller asked for when the store cannot be reached', async () => {
 		network.resetHandlers(http.get(IMAGE_PATH, () => HttpResponse.error()));
 
-		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'webp' });
+		const { content } = await createImage({ prompt: 'a red bicycle', format: 'webp' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'image/webp' });
 	});
@@ -241,5 +243,12 @@ describe('image generation', () => {
 		const { content } = await createImage({ prompt: 'a red bicycle' });
 
 		expect(textIn(content)).toMatchObject({ text: expect.stringMatching(/about a day/) });
+	});
+
+	// @behavior I-017
+	it('should generate at 1K when no resolution is named', async () => {
+		await createImage({ prompt: 'a red bicycle' });
+
+		expect(generations[0].inputs).toMatchObject({ image_size: '1K' });
 	});
 });
