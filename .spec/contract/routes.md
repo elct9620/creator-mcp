@@ -15,3 +15,9 @@ route, so each one is claimed in front of the code answering it.
 
 The host is reachable before anything is published on it, and this says so
 rather than leaving a caller to read a 404 as a wrong address.
+
+## `ALL /mcp`
+
+The Model Context Protocol endpoint. Method dispatch belongs to the
+protocol rather than to the router, so every method reaches the handler
+and the handler decides what it will answer.
