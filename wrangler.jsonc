@@ -64,9 +64,9 @@
 	 * what decides how they are billed and rate limited. It is deliberately
 	 * absent from this file: a deployment answers with a secret, and a var of
 	 * the same name is uploaded over that secret on every deploy, leaving the
-	 * account's default gateway to answer. Naming one locally is
-	 * `wrangler dev --var AI_GATEWAY:<name>`, because a key no configuration
-	 * declares never becomes a binding.
+	 * account's default gateway to answer. `.dev.vars` is what names one
+	 * locally, and it reaches `wrangler dev` without being declared here —
+	 * declaring it is precisely what would undo this.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 	"ai": {
