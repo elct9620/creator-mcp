@@ -14,13 +14,17 @@ because a different reader needs each one.
 
 Generate an image from a prompt.
 
-| Argument       | Default                  | Accepts                                                                 |
-| -------------- | ------------------------ | ----------------------------------------------------------------------- |
-| `prompt`       | —                        | What the image should show. Required.                                   |
-| `model`        | `google/nano-banana-pro` | `google/nano-banana-pro`                                                |
-| `aspect_ratio` | the model's own          | `1:1`, `3:2`, `2:3`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9` |
-| `format`       | the model's own          | `jpg`, `png`, `webp`                                                    |
-| `resolution`   | `1K`                     | `1K`, `2K`, `4K`                                                        |
+| Argument       | Default                | Accepts                                                                       |
+| -------------- | ---------------------- | ----------------------------------------------------------------------------- |
+| `prompt`       | —                      | What the image should show. Required.                                         |
+| `model`        | `google/nano-banana-2` | `google/nano-banana-pro`, `google/nano-banana-2`, `google/nano-banana-2-lite` |
+| `aspect_ratio` | the model's own        | `1:1`, `3:2`, `2:3`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`       |
+| `format`       | the model's own        | `jpg`, `png`, `webp`; only `google/nano-banana-pro` stores `webp`             |
+| `resolution`   | `1K`                   | `1K`, `2K`, `4K`; `google/nano-banana-2-lite` generates `1K` alone            |
+
+The provider's tiers run `google/nano-banana-pro`, `google/nano-banana-2`,
+`google/nano-banana-2-lite` from dearest to cheapest; what each costs on an
+account is on the Cloudflare dashboard.
 
 ### `create_audio`
 
