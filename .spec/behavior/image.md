@@ -8,12 +8,20 @@ presigned and stands for a day, and it is handed on exactly as given: a call is
 one-shot, so the caller reaches the image while the link still stands, and the
 Worker never carries the image itself.
 
-The words a caller uses are this application's rather than the model's.
-`google/nano-banana-pro` calls the encoding `output_format` and the resolution
-`image_size`; a caller says `format` and `resolution`, and the translation
-happens where the model is asked. The rule that decides this is in the
-glossary, and the point of it is that a second model arriving changes nothing
-a caller has to relearn.
+More than one model generates here, and they do not agree on words.
+`google/nano-banana-pro` calls the resolution `image_size` where the others
+call it `resolution`, and it is the only one that stores webp. So the tool
+keeps a vocabulary of its own and every model states how much of it it answers
+to — a painter, in the glossary's words — translating at the moment the request
+is made. The point of it is that a caller says `format` and `resolution`
+whichever model generates.
+
+A call naming no model is generated with `google/nano-banana-2`. The same
+reason that picks the smallest resolution picks it: a caller who said nothing
+has not asked to pay more, and the provider's tiers put it below
+`google/nano-banana-pro`. The cheapest tier is `google/nano-banana-2-lite`, and
+it is not the default because it generates 1K alone — a default that quietly
+caps what can be asked for is a different thing from one that costs less.
 
 A call naming no resolution is generated at the smallest one. It is the
 cheapest, and a caller who said nothing has not asked to pay more; which one
@@ -68,19 +76,19 @@ long the link stands as well as where it points.
 
 ## `I-003` The model a caller names nothing for
 
-| Step  | Statement                                    |
-| ----- | -------------------------------------------- |
-| Given | a call naming no model                       |
-| When  | `create_image` is called                     |
-| Then  | `google/nano-banana-pro` generates the image |
+| Step  | Statement                                  |
+| ----- | ------------------------------------------ |
+| Given | a call naming no model                     |
+| When  | `create_image` is called                   |
+| Then  | `google/nano-banana-2` generates the image |
 
 ## `I-004` What the caller asks of the generation
 
-| Step  | Statement                                          |
-| ----- | -------------------------------------------------- |
-| Given | an aspect ratio, a format or a resolution          |
-| When  | `create_image` is called with them                 |
-| Then  | the model receives each one under the name it uses |
+| Step  | Statement                                              |
+| ----- | ------------------------------------------------------ |
+| Given | a model, and an aspect ratio, a format or a resolution |
+| When  | `create_image` is called with them                     |
+| Then  | that model receives each one under the name it uses    |
 
 ## `I-005` The image is linked rather than carried
 

@@ -96,28 +96,25 @@ describe('image generation', () => {
 	});
 
 	// @behavior I-003
-	it('should generate with nano-banana-pro when no model is named', async () => {
+	it('should generate with nano-banana-2 when no model is named', async () => {
 		await createImage({ prompt: 'a red bicycle' });
 
-		expect(generations[0].model).toBe('google/nano-banana-pro');
+		expect(generations[0].model).toBe('google/nano-banana-2');
 	});
 
+	// The caller says `format` and `resolution` whichever model generates; each
+	// model is asked in its own words. `google/nano-banana-pro` is the one that
+	// calls the resolution something else, so the three cases together are what
+	// watches the translation rather than a single spelling.
 	// @behavior I-004
-	it('should pass the generation options on when the caller gives them', async () => {
-		await createImage({
-			prompt: 'a red bicycle',
-			aspect_ratio: '16:9',
-			format: 'webp',
-			resolution: '2K',
-		});
+	it.each([
+		['google/nano-banana-pro', { format: 'webp', resolution: '2K' }, { output_format: 'webp', image_size: '2K' }],
+		['google/nano-banana-2', { format: 'png', resolution: '2K' }, { output_format: 'png', resolution: '2K' }],
+		['google/nano-banana-2-lite', { format: 'jpg', resolution: '1K' }, { output_format: 'jpg', resolution: '1K' }],
+	])('should ask %s in its own words when the caller gives generation options', async (model, asked, expected) => {
+		await createImage({ prompt: 'a red bicycle', model, aspect_ratio: '16:9', ...asked });
 
-		// The caller said `format` and `resolution`; the model is asked in its
-		// own words. Both halves differing is the translation being watched.
-		expect(generations[0].inputs).toMatchObject({
-			aspect_ratio: '16:9',
-			output_format: 'webp',
-			image_size: '2K',
-		});
+		expect(generations[0].inputs).toMatchObject({ aspect_ratio: '16:9', ...expected });
 	});
 
 	// @behavior I-005
@@ -249,6 +246,6 @@ describe('image generation', () => {
 	it('should generate at 1K when no resolution is named', async () => {
 		await createImage({ prompt: 'a red bicycle' });
 
-		expect(generations[0].inputs).toMatchObject({ image_size: '1K' });
+		expect(generations[0].inputs).toMatchObject({ resolution: '1K' });
 	});
 });
