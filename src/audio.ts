@@ -33,7 +33,7 @@ const MIME_TYPES: Record<Format, string> = {
 	flac: 'audio/flac',
 };
 
-/** What a caller asks for, in this tool's words rather than a provider's. */
+/** A request on its way to one model: the caller's words, part-way translated. */
 type Spoken = {
 	text: string;
 	voice?: string;
