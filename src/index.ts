@@ -1,30 +1,22 @@
-import { createMcpHandler, McpServer, originValidationResponse, type McpHttpHandler } from '@modelcontextprotocol/server';
+import { createMcpHandler, McpServer, originValidationResponse } from '@modelcontextprotocol/server';
 import { Hono } from 'hono';
 import { name, version } from '../package.json';
 import { accessGuard } from './access';
 import { registerCreateImage } from './image';
 
-// The server is built per request and keeps nothing between them, which is
-// what lets this Worker serve MCP without a Durable Object. The handler around
-// it is not per request — it holds the subscription bus and the exchanges
-// still in flight — so it is kept for as long as the bindings it was built
-// against. A Worker has one env, and so one handler; handing the app another
-// env is what lets a caller serve the endpoint against bindings of its own.
-const handlers = new WeakMap<Env, McpHttpHandler>();
+// The tools serve with the bindings of the request they answer, and the route
+// is the only place those are in hand: what a Worker reaches from module scope
+// is its own env rather than the one a caller handed the app. Building the
+// handler here instead costs well under a microsecond and keeps nothing
+// between requests, which is what lets this Worker serve MCP without a
+// Durable Object.
+const handlerFor = (env: Env) =>
+	createMcpHandler(() => {
+		const server = new McpServer({ name, version });
+		registerCreateImage(server, env.AI);
 
-const handlerFor = (env: Env) => {
-	let handler = handlers.get(env);
-	if (!handler) {
-		handler = createMcpHandler(() => {
-			const server = new McpServer({ name, version });
-			registerCreateImage(server, env.AI);
-
-			return server;
-		});
-		handlers.set(env, handler);
-	}
-	return handler;
-};
+		return server;
+	});
 
 // No browser is a legitimate caller here, so no origin is allowed. A client
 // that sends none — every agent — still passes; one that sends any is a page
