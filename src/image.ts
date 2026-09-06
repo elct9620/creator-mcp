@@ -27,6 +27,11 @@ const inputSchema = z.object({
 	image_size: z.enum(IMAGE_SIZES).optional().describe('How much detail the image is generated at.'),
 });
 
+const outputSchema = z.object({
+	uri: z.string().describe('Where the generated image is stored.'),
+	mime_type: z.string().optional().describe('What the stored image is encoded as, when it can be known.'),
+});
+
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
 /**
@@ -77,11 +82,13 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 			title: 'Create image',
 			description: 'Generate an image from a prompt. The reply links to the generated image rather than carrying it.',
 			inputSchema,
+			outputSchema,
 		},
 		async ({ prompt, model, ...generation }) => {
 			const answer = await ai.run(model, { prompt, ...generation }, options);
 			const link = linkFrom(answer);
 			const asked = generation.output_format ? MIME_TYPES[generation.output_format] : undefined;
+			const mimeType = (await storedEncodingOf(link)) ?? asked;
 
 			return {
 				content: [
@@ -90,9 +97,10 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 						uri: link,
 						name: 'generated-image',
 						title: prompt,
-						mimeType: (await storedEncodingOf(link)) ?? asked,
+						mimeType,
 					},
 				],
+				structuredContent: { uri: link, mime_type: mimeType },
 			};
 		},
 	);

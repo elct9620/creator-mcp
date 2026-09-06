@@ -185,4 +185,11 @@ describe('image generation', () => {
 
 		expect(generations[0].options?.gateway).toBeUndefined();
 	});
+
+	// @behavior I-013
+	it('should carry the link and its encoding as structured content when the model answers', async () => {
+		const { structuredContent } = await createImage({ prompt: 'a red bicycle' });
+
+		expect(structuredContent).toEqual({ uri: IMAGE, mime_type: 'image/jpeg' });
+	});
 });

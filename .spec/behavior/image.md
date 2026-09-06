@@ -27,6 +27,12 @@ one answers instead — so the choice is which gateway, never whether. A name is
 therefore left out entirely rather than sent empty: an empty one is refused as
 a missing gateway rather than read as none.
 
+A caller reads the reply in one of two vocabularies, so it is stated in both:
+a resource link for whoever follows it, and structured content for whoever
+parses it. Neither carries more than the other. The link is not written out
+again as text, because text saying what the link already says is a third copy
+and no third fact.
+
 ## Includes
 
 - `test/image.spec.ts`
@@ -126,3 +132,11 @@ a missing gateway rather than read as none.
 | Given | a deployment naming no AI Gateway |
 | When  | `create_image` generates          |
 | Then  | the generation names none         |
+
+## `I-013` The reply is also structured
+
+| Step  | Statement                                                                  |
+| ----- | -------------------------------------------------------------------------- |
+| Given | a model answering with a link to the image it generated                    |
+| When  | `create_image` replies                                                     |
+| Then  | the structured content carries that link and the encoding the reply states |
