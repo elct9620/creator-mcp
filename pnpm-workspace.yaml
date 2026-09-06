@@ -4,4 +4,7 @@
 # ERR_PNPM_IGNORED_BUILDS.
 allowBuilds:
   esbuild: true
+  # Only the interceptor is used here, never the browser service worker msw's
+  # postinstall writes.
+  msw: false
   workerd: true

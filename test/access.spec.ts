@@ -1,30 +1,47 @@
-import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
-import { env, exports } from 'cloudflare:workers';
-import { SignJWT, generateKeyPair } from 'jose';
-import { describe, it, expect, beforeAll } from 'vitest';
-import { createApp } from '../src/index';
+import { setupNetwork } from '@msw/cloudflare';
+import { SignJWT, exportJWK, generateKeyPair } from 'jose';
+import { http, HttpResponse } from 'msw';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import app from '../src/index';
 
-// Access signs its assertions with RS256. Signing with a locally generated key
-// and handing the guard its public half is what lets a valid assertion be
-// exercised without reaching Cloudflare for one.
+const ENV = {
+	DEBUG: 'false',
+	TEAM_DOMAIN: 'https://creator.cloudflareaccess.com',
+	POLICY_AUD: 'test-policy-aud',
+} satisfies Env;
+
+// Access signs its assertions with RS256 and publishes the public half at its
+// certs endpoint. Standing in for that endpoint is what lets the guard run the
+// key fetching it really does, rather than a seam opened for the test.
 const ALGORITHM = 'RS256';
+const KEY_ID = 'test-key';
 
-let keys: Awaited<ReturnType<typeof generateKeyPair>>;
+const network = setupNetwork();
+let privateKey: CryptoKey;
 
 beforeAll(async () => {
-	keys = await generateKeyPair(ALGORITHM);
+	const keys = await generateKeyPair(ALGORITHM, { extractable: true });
+	privateKey = keys.privateKey;
+
+	const jwk = await exportJWK(keys.publicKey);
+	network.use(
+		http.get(`${ENV.TEAM_DOMAIN}/cdn-cgi/access/certs`, () => HttpResponse.json({ keys: [{ ...jwk, alg: ALGORITHM, kid: KEY_ID }] })),
+	);
+	network.enable();
 });
 
-const assertionFor = (audience: string) =>
+afterAll(() => network.disable());
+
+const assertionFrom = ({ issuer = ENV.TEAM_DOMAIN, audience = ENV.POLICY_AUD } = {}) =>
 	new SignJWT({})
-		.setProtectedHeader({ alg: ALGORITHM })
-		.setIssuer(env.TEAM_DOMAIN)
+		.setProtectedHeader({ alg: ALGORITHM, kid: KEY_ID })
+		.setIssuer(issuer)
 		.setAudience(audience)
 		.setExpirationTime('1h')
-		.sign(keys.privateKey);
+		.sign(privateKey);
 
 const ping = (headers: Record<string, string> = {}) =>
-	new Request('https://creator.example.com/mcp', {
+	({
 		method: 'POST',
 		headers: {
 			'content-type': 'application/json',
@@ -32,41 +49,46 @@ const ping = (headers: Record<string, string> = {}) =>
 			...headers,
 		},
 		body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'ping', params: {} }),
-	});
-
-const serve = async (request: Request, overrides: Partial<Env> = {}) => {
-	const app = createApp(() => keys.publicKey);
-	const ctx = createExecutionContext();
-	const response = await app.fetch(request, { ...env, ...overrides }, ctx);
-	await waitOnExecutionContext(ctx);
-	return response;
-};
+	}) satisfies RequestInit;
 
 describe('Access', () => {
 	// @behavior A-001
 	it('should refuse the request when no assertion is carried', async () => {
-		const response = await exports.default.fetch(ping());
+		const response = await app.request('/mcp', ping(), ENV);
 
 		expect(response.status).toBe(401);
 	});
 
 	// @behavior A-002
 	it('should answer the request when the assertion is for this application', async () => {
-		const response = await serve(ping({ 'Cf-Access-Jwt-Assertion': await assertionFor(env.POLICY_AUD) }));
+		const assertion = await assertionFrom();
+
+		const response = await app.request('/mcp', ping({ 'cf-access-jwt-assertion': assertion }), ENV);
 
 		expect(response.status).toBe(200);
 	});
 
 	// @behavior A-003
 	it('should refuse the request when the assertion is for another application', async () => {
-		const response = await serve(ping({ 'Cf-Access-Jwt-Assertion': await assertionFor('another-application') }));
+		const assertion = await assertionFrom({ audience: 'another-application' });
+
+		const response = await app.request('/mcp', ping({ 'cf-access-jwt-assertion': assertion }), ENV);
+
+		expect(response.status).toBe(401);
+	});
+
+	// @behavior A-005
+	it('should refuse the request when the assertion is from another team domain', async () => {
+		const assertion = await assertionFrom({ issuer: 'https://elsewhere.cloudflareaccess.com' });
+
+		const response = await app.request('/mcp', ping({ 'cf-access-jwt-assertion': assertion }), ENV);
 
 		expect(response.status).toBe(401);
 	});
 
 	// @behavior A-004
 	it('should answer the request without an assertion when DEBUG is on', async () => {
-		const response = await serve(ping(), { DEBUG: 'true' });
+		const response = await app.request('/mcp', ping(), { ...ENV, DEBUG: 'true' });
 
 		expect(response.status).toBe(200);
 	});

@@ -33,6 +33,14 @@ trusting a header nobody verified.
 | When  | `/mcp` is requested                                       |
 | Then  | the response is 401                                       |
 
+## `A-005` A caller admitted by another organisation
+
+| Step  | Statement                                        |
+| ----- | ------------------------------------------------ |
+| Given | an assertion whose issuer is another team domain |
+| When  | `/mcp` is requested                              |
+| Then  | the response is 401                              |
+
 ## `A-004` Local development, where no Access sits in front
 
 | Step  | Statement                                    |
