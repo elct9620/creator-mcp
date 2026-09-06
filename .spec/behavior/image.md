@@ -27,11 +27,12 @@ one answers instead — so the choice is which gateway, never whether. A name is
 therefore left out entirely rather than sent empty: an empty one is refused as
 a missing gateway rather than read as none.
 
-A caller reads the reply in one of two vocabularies, so it is stated in both:
-a resource link for whoever follows it, and structured content for whoever
-parses it. Neither carries more than the other. The link is not written out
-again as text, because text saying what the link already says is a third copy
-and no third fact.
+The reply states the link three ways, because three readers need it: a resource
+link for the client that follows one, structured content for whatever parses the
+reply, and text for the model — the only path by which the link reaches the
+person who has to fetch the file. A client that renders neither of the first two
+still leaves that person able to save what was generated, so the text says how
+long the link stands as well as where it points.
 
 ## Includes
 
@@ -156,3 +157,11 @@ and no third fact.
 | Given | an endpoint serving the tool                                 |
 | When  | a client lists the tools                                     |
 | Then  | `create_image` states the shape of the reply it answers with |
+
+## `I-016` The link reaches the person who has to fetch it
+
+| Step  | Statement                                                  |
+| ----- | ---------------------------------------------------------- |
+| Given | a model answering with a link to the image it generated    |
+| When  | `create_image` replies                                     |
+| Then  | the reply states that link in text, and how long it stands |

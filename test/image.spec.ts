@@ -72,9 +72,12 @@ afterEach(() => client.close());
 
 const createImage = (args: Record<string, unknown>) => client.callTool({ name: 'create_image', arguments: args });
 
-// Every promise below is about the link the reply carries, not about where in
-// the reply it sits.
-const linkIn = (content: Awaited<ReturnType<Client['callTool']>>['content']) => content?.find(({ type }) => type === 'resource_link');
+type Content = Awaited<ReturnType<Client['callTool']>>['content'];
+
+// Every promise below is about one block of the reply, not about where in the
+// reply it sits.
+const linkIn = (content: Content) => content?.find(({ type }) => type === 'resource_link');
+const textIn = (content: Content) => content?.find(({ type }) => type === 'text');
 
 describe('image generation', () => {
 	// @behavior I-001
@@ -214,5 +217,19 @@ describe('image generation', () => {
 			properties: { uri: { type: 'string' }, mime_type: { type: 'string' } },
 			required: ['uri'],
 		});
+	});
+
+	// @behavior I-016
+	it('should state the link in text when the model answers', async () => {
+		const { content } = await createImage({ prompt: 'a red bicycle' });
+
+		expect(textIn(content)).toMatchObject({ text: expect.stringContaining(IMAGE) });
+	});
+
+	// @behavior I-016
+	it('should say how long the link stands when it states it in text', async () => {
+		const { content } = await createImage({ prompt: 'a red bicycle' });
+
+		expect(textIn(content)).toMatchObject({ text: expect.stringMatching(/day/) });
 	});
 });

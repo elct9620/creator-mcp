@@ -99,6 +99,10 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 						title: prompt,
 						mimeType,
 					},
+					{
+						type: 'text',
+						text: `The image is at ${link}. That link works for about a day, so save the image before then.`,
+					},
 				],
 				structuredContent: { uri: link, mime_type: mimeType },
 			};
