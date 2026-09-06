@@ -23,11 +23,11 @@
 	 * is deployed; only a local .dev.vars turns it on.
 	 *
 	 * AI_GATEWAY names the AI Gateway the models are reached through, which is
-	 * what decides how inference is billed and rate limited. An empty name is
-	 * the absence of one, and generation reaches Workers AI directly. It sits
-	 * in vars rather than secrets because a gateway name is neither sensitive
-	 * nor required: this file is the answer for a deployment, and .dev.vars
-	 * overrides it locally.
+	 * what decides how inference is billed and rate limited. An empty name
+	 * leaves the account's default gateway to answer, so this chooses which
+	 * gateway rather than whether there is one. It sits in vars rather than
+	 * secrets because a gateway name is neither sensitive nor required: this
+	 * file is the answer for a deployment, and .dev.vars overrides it locally.
 	 */
 	"vars": {
 		"DEBUG": "false",

@@ -22,7 +22,10 @@ come from Workers AI itself.
 
 Which AI Gateway the model is reached through is a deployment's answer rather
 than a caller's, because it decides how the inference is billed and rate
-limited. A deployment that names none reaches Workers AI directly.
+limited. Naming none is not the absence of a gateway — the account's default
+one answers instead — so the choice is which gateway, never whether. A name is
+therefore left out entirely rather than sent empty: an empty one is refused as
+a missing gateway rather than read as none.
 
 ## Includes
 
@@ -122,4 +125,4 @@ limited. A deployment that names none reaches Workers AI directly.
 | ----- | --------------------------------- |
 | Given | a deployment naming no AI Gateway |
 | When  | `create_image` generates          |
-| Then  | the model is reached directly     |
+| Then  | the generation names none         |

@@ -9,5 +9,5 @@ TEAM_NAME=your-team
 POLICY_AUD=your-application-audience-tag
 
 # The AI Gateway the models are reached through, which decides how inference is
-# billed and rate limited. Empty reaches Workers AI directly.
+# billed and rate limited. Empty leaves the account's default gateway to answer.
 AI_GATEWAY=
