@@ -8,6 +8,18 @@ presigned and stands for a day, and it is handed on exactly as given: a call is
 one-shot, so the caller reaches the image while the link still stands, and the
 Worker never carries the image itself.
 
+The words a caller uses are this application's rather than the model's.
+`google/nano-banana-pro` calls the encoding `output_format` and the resolution
+`image_size`; a caller says `format` and `resolution`, and the translation
+happens where the model is asked. The rule that decides this is in the
+glossary, and the point of it is that a second model arriving changes nothing
+a caller has to relearn.
+
+A call naming no resolution is generated at the smallest one. It is the
+cheapest, and a caller who said nothing has not asked to pay more; which one
+the model would otherwise reach for is undocumented, so naming one is also what
+makes the same call answer the same way twice.
+
 The format a caller asks for is not a promise about the stored image —
 one asked for as PNG has come back stored as JPEG — so what the reply says
 about the encoding is read from the store rather than from the request. One
