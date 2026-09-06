@@ -44,8 +44,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai) =>
 		'create_image',
 		{
 			title: 'Create image',
-			description:
-				'Generate an image from a prompt. The reply links to the generated image rather than carrying it.',
+			description: 'Generate an image from a prompt. The reply links to the generated image rather than carrying it.',
 			inputSchema,
 		},
 		async ({ prompt, model, ...generation }) => {
