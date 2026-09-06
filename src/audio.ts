@@ -56,8 +56,8 @@ type Speaker = {
 	voices?: readonly string[];
 	/** Which of this tool's formats it can store, and what it calls each. */
 	formats: Partial<Record<Format, string>>;
-	/** Whether it can be asked to speak faster or slower. */
-	speed: boolean;
+	/** The range it can be asked to speak within, or `false` where it speaks at one pace only. */
+	speed: false | { min: number; max: number };
 	/** The request in the model's own vocabulary. */
 	request: (spoken: Spoken) => Record<string, unknown>;
 };
@@ -68,7 +68,7 @@ const SPEAKERS: Record<Model, Speaker> = {
 		voice: 'default',
 		voices: ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
 		formats: { mp3: 'mp3', opus: 'opus', wav: 'wav', aac: 'aac', flac: 'flac' },
-		speed: true,
+		speed: { min: 0.25, max: 4 },
 		request: ({ text, voice, format, speed }) => ({ text, voice, response_format: format, speed }),
 	},
 	'elevenlabs/eleven-v3': {
@@ -99,7 +99,7 @@ const inputSchema = z.object({
 				'elevenlabs/eleven-v3 takes an ElevenLabs voice ID, and requires one.',
 		),
 	format: z.enum(FORMATS).optional().describe('The encoding the audio is stored in. elevenlabs/eleven-v3 stores only mp3 or opus.'),
-	speed: z.number().min(0.25).max(4).optional().describe('How fast the voice speaks. Only openai/tts-1 can vary it.'),
+	speed: z.number().optional().describe('How fast the voice speaks. Only openai/tts-1 can vary it, between 0.25 and 4.'),
 });
 
 const outputSchema = z.object({
@@ -141,6 +141,9 @@ const refuseWhatItCannotDo = (model: Model, { text, voice, format, speed }: Aske
 	// rather than refused.
 	if (speed !== undefined && speed !== 1 && !speaker.speed)
 		throw new Error(`${model} cannot vary how fast it speaks. Drop \`speed\`, or speak with a model that can.`);
+
+	if (speed !== undefined && speaker.speed && (speed < speaker.speed.min || speed > speaker.speed.max))
+		throw new Error(`${model} speaks between ${speaker.speed.min} and ${speaker.speed.max} times its own pace.`);
 };
 
 export const registerCreateAudio = (server: McpServer, ai: Ai, options?: AiOptions) =>

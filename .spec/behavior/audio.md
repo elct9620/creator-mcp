@@ -221,3 +221,11 @@ in translation rather than refused.
 | Given | an endpoint serving the tool                                          |
 | When  | a client lists the tools                                              |
 | Then  | `create_audio` states on each argument which models accept what of it |
+
+## `AU-023` A speed outside what the model can reach
+
+| Step  | Statement                                            |
+| ----- | ---------------------------------------------------- |
+| Given | a speed outside the range the chosen model speaks in |
+| When  | `create_audio` is called                             |
+| Then  | the call fails and nothing reaches the model         |

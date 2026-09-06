@@ -314,4 +314,15 @@ describe('audio generation', () => {
 		expect(properties?.format.description).toContain('elevenlabs/eleven-v3 stores only mp3 or opus');
 		expect(properties?.speed.description).toContain('Only openai/tts-1 can vary it');
 	});
+
+	// The range belongs to the model, not to the tool: it lives in that
+	// speaker beside every other per-model limit, so a model with a different
+	// range would be described by its own entry rather than by this schema.
+	// @behavior AU-023
+	it('should refuse a speed outside the range the model reaches', async () => {
+		const result = await createAudio({ text: 'the tide is turning', model: 'openai/tts-1', speed: 5 });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
+	});
 });
