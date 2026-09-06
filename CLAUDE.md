@@ -1,4 +1,4 @@
-# creator-mcp
+# creator-kit
 
 ## Commands
 
