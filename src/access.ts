@@ -1,23 +1,22 @@
+import { cloudflareAccess } from '@hono/cloudflare-access';
+import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
-
-/** Cloudflare Access hands the origin the identity it resolved in this header. */
-const ASSERTION_HEADER = 'Cf-Access-Jwt-Assertion';
-
-// One key set per team domain: jose caches the fetched keys inside the set, so
-// building a new one per request would fetch them again every time.
-const keySets = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
-
-const keySetFor = (teamDomain: string) => {
-	const cached = keySets.get(teamDomain);
-	if (cached) return cached;
-
-	const keySet = createRemoteJWKSet(new URL(`${teamDomain}/cdn-cgi/access/certs`));
-	keySets.set(teamDomain, keySet);
-	return keySet;
-};
 
 const isEnabled = (value: string): boolean => value === 'true';
+
+// The middleware holds Access's signing keys in the closure it returns, so it
+// is built once per configuration rather than once per request.
+const guards = new Map<string, MiddlewareHandler>();
+
+const guardFor = (teamName: string, aud: string) => {
+	const configuration = `${teamName}/${aud}`;
+	let guard = guards.get(configuration);
+	if (!guard) {
+		guard = cloudflareAccess(teamName, aud);
+		guards.set(configuration, guard);
+	}
+	return guard;
+};
 
 /**
  * Rejects anything Cloudflare Access did not let through. Access sits in front
@@ -26,21 +25,9 @@ const isEnabled = (value: string): boolean => value === 'true';
  * server that checks the one it is given.
  */
 export const accessGuard = () =>
-	createMiddleware<{ Bindings: Env }>(async (c, next) => {
+	createMiddleware<{ Bindings: Env }>((c, next) => {
 		// Local development has no Access in front of the Worker.
 		if (isEnabled(c.env.DEBUG)) return next();
 
-		const assertion = c.req.header(ASSERTION_HEADER);
-		if (!assertion) return c.text('Unauthorized', 401);
-
-		try {
-			await jwtVerify(assertion, keySetFor(c.env.TEAM_DOMAIN), {
-				issuer: c.env.TEAM_DOMAIN,
-				audience: c.env.POLICY_AUD,
-			});
-		} catch {
-			return c.text('Unauthorized', 401);
-		}
-
-		return next();
+		return guardFor(c.env.TEAM_NAME, c.env.POLICY_AUD)(c, next);
 	});

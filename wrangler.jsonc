@@ -26,8 +26,8 @@
 		"DEBUG": "false",
 	},
 	/**
-	 * The Access application's team domain and audience tag, named the way
-	 * Cloudflare's own JWT validation guide names them. Declaring them here
+	 * The Access team name and application audience tag, which is what
+	 * `cloudflareAccess()` asks for. Declaring them here
 	 * rather than letting them be inferred from .dev.vars keeps the generated
 	 * types the same for everyone, since .dev.vars is never committed; keeping
 	 * them out of `vars` keeps a deploy from overwriting what is set on the
@@ -35,7 +35,7 @@
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 	"secrets": {
-		"required": ["TEAM_DOMAIN", "POLICY_AUD"],
+		"required": ["TEAM_NAME", "POLICY_AUD"],
 	},
 	/**
 	 * Smart Placement

@@ -6,9 +6,11 @@ import app from '../src/index';
 
 const ENV = {
 	DEBUG: 'false',
-	TEAM_DOMAIN: 'https://creator.cloudflareaccess.com',
+	TEAM_NAME: 'creator',
 	POLICY_AUD: 'test-policy-aud',
 } satisfies Env;
+
+const TEAM_DOMAIN = `https://${ENV.TEAM_NAME}.cloudflareaccess.com`;
 
 // Access signs its assertions with RS256 and publishes the public half at its
 // certs endpoint. Standing in for that endpoint is what lets the guard run the
@@ -25,14 +27,14 @@ beforeAll(async () => {
 
 	const jwk = await exportJWK(keys.publicKey);
 	network.use(
-		http.get(`${ENV.TEAM_DOMAIN}/cdn-cgi/access/certs`, () => HttpResponse.json({ keys: [{ ...jwk, alg: ALGORITHM, kid: KEY_ID }] })),
+		http.get(`${TEAM_DOMAIN}/cdn-cgi/access/certs`, () => HttpResponse.json({ keys: [{ ...jwk, alg: ALGORITHM, kid: KEY_ID }] })),
 	);
 	network.enable();
 });
 
 afterAll(() => network.disable());
 
-const assertionFrom = ({ issuer = ENV.TEAM_DOMAIN, audience = ENV.POLICY_AUD } = {}) =>
+const assertionFrom = ({ issuer = TEAM_DOMAIN, audience = ENV.POLICY_AUD } = {}) =>
 	new SignJWT({})
 		.setProtectedHeader({ alg: ALGORITHM, kid: KEY_ID })
 		.setIssuer(issuer)

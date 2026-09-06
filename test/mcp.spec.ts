@@ -1,47 +1,42 @@
-import { describe, it, expect } from 'vitest';
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import app from '../src/index';
-
-// The endpoint answers a single exchange as one server-sent event, so the
-// JSON-RPC payload is the `data:` line of that event.
-const jsonRpcPayload = (body: string): unknown =>
-	JSON.parse(
-		body
-			.split('\n')
-			.find((line) => line.startsWith('data:'))!
-			.slice('data:'.length),
-	);
 
 // What Access admits is settled in its own feature; this one asks what the
 // endpoint answers once a caller is through.
 const ENV = {
 	DEBUG: 'true',
-	TEAM_DOMAIN: 'https://creator.cloudflareaccess.com',
+	TEAM_NAME: 'creator',
 	POLICY_AUD: 'test-policy-aud',
 } satisfies Env;
 
-const callMcp = (method: string) =>
-	app.request(
-		'/mcp',
-		{
-			method: 'POST',
-			headers: {
-				'content-type': 'application/json',
-				accept: 'application/json, text/event-stream',
-			},
-			body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: {} }),
-		},
-		ENV,
+// The transport never dials this URL: every request it makes is served by the
+// same app the Worker exports, so the protocol is exercised over the real
+// routing rather than over a hand-written JSON-RPC envelope.
+const ENDPOINT = new URL('https://creator.example.com/mcp');
+
+const client = new Client({ name: 'test-harness', version: '0.0.0' });
+
+beforeAll(async () => {
+	await client.connect(
+		new StreamableHTTPClientTransport(ENDPOINT, {
+			fetch: async (url, init) => app.fetch(new Request(url, init), ENV),
+		}),
 	);
+});
+
+afterAll(() => client.close());
 
 describe('MCP endpoint', () => {
 	// @behavior M-001
-	it('should answer an empty result when ping is requested', async () => {
-		const response = await callMcp('ping');
+	it('should answer a ping', async () => {
+		await expect(client.ping()).resolves.toEqual({});
+	});
 
-		expect(jsonRpcPayload(await response.text())).toEqual({
-			jsonrpc: '2.0',
-			id: 1,
-			result: {},
-		});
+	// @behavior M-002
+	it('should carry no tools of its own yet', async () => {
+		const { tools } = await client.listTools();
+
+		expect(tools).toEqual([]);
 	});
 });

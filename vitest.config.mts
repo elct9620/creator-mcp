@@ -13,7 +13,7 @@ export default defineConfig({
 			miniflare: {
 				bindings: {
 					DEBUG: 'false',
-					TEAM_DOMAIN: 'https://creator.cloudflareaccess.com',
+					TEAM_NAME: 'creator',
 					POLICY_AUD: 'test-policy-aud',
 				},
 			},
