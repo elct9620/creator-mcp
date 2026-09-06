@@ -24,17 +24,6 @@
 	 */
 	"workers_dev": false,
 	/**
-	 * AI_GATEWAY names the AI Gateway the models are reached through, which is
-	 * what decides how inference is billed and rate limited. An empty name
-	 * leaves the account's default gateway to answer, so this chooses which
-	 * gateway rather than whether there is one. It sits in vars rather than
-	 * secrets because a gateway name is neither sensitive nor required: this
-	 * file is the answer for a deployment, and .dev.vars overrides it locally.
-	 */
-	"vars": {
-		"AI_GATEWAY": "",
-	},
-	/**
 	 * No Access stands in front of `wrangler dev`, so this stands in for one:
 	 * every local request arrives already matched, carrying this identity.
 	 * Removing the block is what drives the unmatched path by hand; the test
@@ -56,6 +45,15 @@
 	 * `wrangler dev` included, which is why the test suite closes remote
 	 * bindings off rather than holding one of these.
 	 * https://developers.cloudflare.com/workers/development-testing/bindings-per-env/
+	 *
+	 * AI_GATEWAY names the gateway those calls are reached through, which is
+	 * what decides how they are billed and rate limited. It is deliberately
+	 * absent from this file: a deployment answers with a secret, and a var of
+	 * the same name is uploaded over that secret on every deploy, leaving the
+	 * account's default gateway to answer. Naming one locally is
+	 * `wrangler dev --var AI_GATEWAY:<name>`, because a key no configuration
+	 * declares never becomes a binding.
+	 * https://developers.cloudflare.com/workers/configuration/secrets/
 	 */
 	"ai": {
 		"binding": "AI",

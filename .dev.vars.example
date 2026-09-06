@@ -1,6 +1,0 @@
-# Copy to .dev.vars. Cloudflare Access is simulated by the `access.dev` block
-# in wrangler.jsonc rather than by anything here.
-
-# The AI Gateway the models are reached through, which decides how inference is
-# billed and rate limited. Empty leaves the account's default gateway to answer.
-AI_GATEWAY=
