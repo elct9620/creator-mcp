@@ -15,8 +15,16 @@ const IMAGE = `${IMAGE_PATH}?X-Amz-Expires=86400&X-Amz-Algorithm=AWS4-HMAC-SHA25
 // what it answers with is the encoding the reply reports.
 const network = setupNetwork();
 
+// What the store was asked for, so a test can say that the image was left
+// where it is rather than pulled through the Worker.
+let ranges: (string | null)[] = [];
+
 const storeHolding = (contentType: string) =>
-	http.get(IMAGE_PATH, () => new HttpResponse(null, { status: 206, headers: { 'content-type': contentType } }));
+	http.get(IMAGE_PATH, ({ request }) => {
+		ranges.push(request.headers.get('range'));
+
+		return new HttpResponse(null, { status: 206, headers: { 'content-type': contentType } });
+	});
 
 const storeRefusing = () => http.get(IMAGE_PATH, () => new HttpResponse(null, { status: 403 }));
 
@@ -52,6 +60,7 @@ beforeAll(() => network.enable());
 afterAll(() => network.disable());
 
 beforeEach(async () => {
+	ranges = [];
 	network.resetHandlers(storeHolding('image/jpeg'));
 
 	const workersAi = aiAnswering(answering(IMAGE));
@@ -133,6 +142,16 @@ describe('image generation', () => {
 		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/webp' })]);
 	});
 
+	// @behavior I-008
+	it('should fail when the model answers without a link', async () => {
+		const stranded = await connect(envWith(aiAnswering({ state: 'Completed', result: {} }).ai));
+
+		const result = await stranded.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
+
+		expect(result.isError).toBe(true);
+		await stranded.close();
+	});
+
 	// @behavior I-009
 	it('should state no encoding when neither the store nor the caller gives one', async () => {
 		network.resetHandlers(storeRefusing());
@@ -142,13 +161,10 @@ describe('image generation', () => {
 		expect(content).toEqual([expect.not.objectContaining({ mimeType: expect.anything() })]);
 	});
 
-	// @behavior I-008
-	it('should fail when the model answers without a link', async () => {
-		const stranded = await connect(envWith(aiAnswering({ state: 'Completed', result: {} }).ai));
+	// @behavior I-010
+	it('should ask the store for a single byte when it asks what the image is', async () => {
+		await createImage({ prompt: 'a red bicycle' });
 
-		const result = await stranded.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
-
-		expect(result.isError).toBe(true);
-		await stranded.close();
+		expect(ranges).toEqual(['bytes=0-0']);
 	});
 });

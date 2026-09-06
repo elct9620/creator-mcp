@@ -95,3 +95,11 @@ come from Workers AI itself.
 | Given | a store that will not say, and a caller who named no format |
 | When  | `create_image` replies                                      |
 | Then  | the link states no encoding                                 |
+
+## `I-010` The image stays where it is
+
+| Step  | Statement                                    |
+| ----- | -------------------------------------------- |
+| Given | a store holding the image that was generated |
+| When  | `create_image` asks what it is encoded as    |
+| Then  | it asks for a single byte                    |
