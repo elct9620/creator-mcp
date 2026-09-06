@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@hono/cloudflare-access':
-        specifier: ^0.4.0
-        version: 0.4.0(hono@4.13.7)
       '@modelcontextprotocol/server':
         specifier: 2.0.0
         version: 2.0.0
@@ -33,9 +30,6 @@ importers:
       '@types/node':
         specifier: ^26.4.1
         version: 26.4.1
-      jose:
-        specifier: ^6.2.11
-        version: 6.2.11
       msw:
         specifier: ^2.15.0
         version: 2.15.0(@types/node@26.4.1)(typescript@5.9.3)
@@ -266,11 +260,6 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
-
-  '@hono/cloudflare-access@0.4.0':
-    resolution: {integrity: sha512-aaXfUOOkdXLcOYn1K3pn2Kt96LSgtUaOfD9ItWjNnsaH5+3bMN12h1bgGy8hQud3aB+u1WKSpEr0Ln+enPQlwA==}
-    peerDependencies:
-      hono: '>=4.0.0'
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -1355,10 +1344,6 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.1':
     optional: true
-
-  '@hono/cloudflare-access@0.4.0(hono@4.13.7)':
-    dependencies:
-      hono: 4.13.7
 
   '@img/colour@1.1.0': {}
 

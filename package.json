@@ -18,7 +18,6 @@
 		"@modelcontextprotocol/client": "2.0.0",
 		"@msw/cloudflare": "^0.0.1",
 		"@types/node": "^26.4.1",
-		"jose": "^6.2.11",
 		"msw": "^2.15.0",
 		"prettier": "^3.9.6",
 		"typescript": "^5.5.2",
@@ -26,7 +25,6 @@
 		"wrangler": "^4.129.0"
 	},
 	"dependencies": {
-		"@hono/cloudflare-access": "^0.4.0",
 		"@modelcontextprotocol/server": "2.0.0",
 		"hono": "^4.13.7",
 		"zod": "^4.5.4"
