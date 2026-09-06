@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { linkFrom, storedEncodingOf } from './stored';
 
 /**
  * The models this tool generates with. Each one answers with a link to what it
@@ -32,49 +33,6 @@ const outputSchema = z.object({
 	mime_type: z.string().optional().describe('What the stored image is encoded as, when it can be known.'),
 });
 
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
-
-/**
- * The answer is the gateway's envelope around the model's own output, and none
- * of these models is in `AiModels`, so the binding types it as an open record
- * and nothing upstream would catch a shape that changed. This is the one place
- * stating what the answer has to carry. The envelope carries a `state`, and
- * `gatewayMetadata` on some answers but not others; the link is the whole of
- * what is read.
- */
-const linkFrom = (answer: Record<string, unknown>): string => {
-	const image = isRecord(answer.result) ? answer.result.image : undefined;
-	if (typeof image !== 'string') throw new Error('The model answered without a link to an image.');
-
-	return image;
-};
-
-// Long enough for a store that is answering, short enough that one which is
-// not leaves the reply to the format the caller asked for instead of waiting.
-const ENCODING_TIMEOUT_MS = 5000;
-
-/**
- * What the stored image is really encoded as. A caller's output format is a
- * hint the model may not honour, so the store is asked rather than trusted to
- * have obeyed. One byte answers it: the range keeps the image out of the
- * Worker while the response states its type, and the link is signed for `GET`
- * alone, so a `HEAD` would be refused.
- */
-const storedEncodingOf = async (link: string): Promise<string | undefined> => {
-	try {
-		const response = await fetch(link, {
-			headers: { range: 'bytes=0-0' },
-			signal: AbortSignal.timeout(ENCODING_TIMEOUT_MS),
-		});
-		await response.body?.cancel();
-		if (!response.ok) return undefined;
-
-		return response.headers.get('content-type')?.split(';')[0].trim() || undefined;
-	} catch {
-		return undefined;
-	}
-};
-
 export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptions) =>
 	server.registerTool(
 		'create_image',
@@ -86,7 +44,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 		},
 		async ({ prompt, model, ...generation }) => {
 			const answer = await ai.run(model, { prompt, ...generation }, options);
-			const link = linkFrom(answer);
+			const link = linkFrom(answer, 'image');
 			const asked = generation.output_format ? MIME_TYPES[generation.output_format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? asked;
 
