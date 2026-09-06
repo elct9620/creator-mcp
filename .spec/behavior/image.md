@@ -8,6 +8,11 @@ short-lived, and it is handed on exactly as given: a call is one-shot, so the
 caller reaches the image while the link still stands, and the Worker never
 carries the image itself.
 
+What the image is encoded as is stated only when the caller chose it. A model
+given no format picks its own, and the catalogue that would say which one
+contradicts itself, so an encoding nobody stated is left unstated rather than
+guessed at.
+
 ## Includes
 
 - `test/image.spec.ts`
@@ -51,3 +56,27 @@ carries the image itself.
 | Given | a model answering with a link to the image it generated |
 | When  | `create_image` replies                                  |
 | Then  | the reply carries that link as given                    |
+
+## `I-006` The encoding the caller asked for
+
+| Step  | Statement                        |
+| ----- | -------------------------------- |
+| Given | a caller naming an output format |
+| When  | `create_image` replies           |
+| Then  | the link states that encoding    |
+
+## `I-007` The encoding nobody asked for
+
+| Step  | Statement                              |
+| ----- | -------------------------------------- |
+| Given | a caller naming no output format       |
+| When  | `create_image` replies                 |
+| Then  | the link states no encoding of its own |
+
+## `I-008` A model answering without a link
+
+| Step  | Statement                              |
+| ----- | -------------------------------------- |
+| Given | an answer carrying no link to an image |
+| When  | `create_image` replies                 |
+| Then  | the call fails                         |

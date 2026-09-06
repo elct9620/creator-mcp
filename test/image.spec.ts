@@ -86,18 +86,21 @@ describe('image generation', () => {
 		expect(content).toEqual([expect.objectContaining({ type: 'resource_link', uri: IMAGE })]);
 	});
 
+	// @behavior I-006
 	it('should name the encoding when the caller asked for one', async () => {
 		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'webp' });
 
 		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/webp' })]);
 	});
 
+	// @behavior I-007
 	it('should leave the encoding unstated when the caller asked for none', async () => {
 		const { content } = await createImage({ prompt: 'a red bicycle' });
 
 		expect(content).toEqual([expect.not.objectContaining({ mimeType: expect.anything() })]);
 	});
 
+	// @behavior I-008
 	it('should fail when the model answers without a link', async () => {
 		const stranded = await connect(envWith(aiAnswering({ state: 'Completed' }).ai));
 
