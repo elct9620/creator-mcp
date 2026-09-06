@@ -12,6 +12,32 @@
 	},
 	"upload_source_maps": true,
 	/**
+	 * Cloudflare Access guards the hostname this Worker is routed to. A
+	 * workers.dev subdomain would be a second origin outside that guard, so
+	 * there is none.
+	 */
+	"workers_dev": false,
+	/**
+	 * DEBUG lifts the Access requirement so the MCP endpoint can be driven
+	 * locally, where no Access sits in front. It is false wherever this file
+	 * is deployed; only a local .dev.vars turns it on.
+	 */
+	"vars": {
+		"DEBUG": "false",
+	},
+	/**
+	 * The Access application's team domain and audience tag, named the way
+	 * Cloudflare's own JWT validation guide names them. Declaring them here
+	 * rather than letting them be inferred from .dev.vars keeps the generated
+	 * types the same for everyone, since .dev.vars is never committed; keeping
+	 * them out of `vars` keeps a deploy from overwriting what is set on the
+	 * Worker.
+	 * https://developers.cloudflare.com/workers/configuration/secrets/
+	 */
+	"secrets": {
+		"required": ["TEAM_DOMAIN", "POLICY_AUD"],
+	},
+	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */
@@ -22,13 +48,6 @@
 	 * databases, object storage, AI inference, real-time communication and more.
 	 * https://developers.cloudflare.com/workers/runtime-apis/bindings/
 	 */
-	/**
-	 * Environment Variables
-	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
-	 * Note: Use secrets to store sensitive data.
-	 * https://developers.cloudflare.com/workers/configuration/secrets/
-	 */
-	// "vars": {  "MY_VARIABLE": "production_value" }
 	/**
 	 * Static Assets
 	 * https://developers.cloudflare.com/workers/static-assets/binding/

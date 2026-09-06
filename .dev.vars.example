@@ -1,0 +1,9 @@
+# Copy to .dev.vars. Local development has no Cloudflare Access in front of
+# the Worker, so DEBUG is what lets the MCP endpoint answer at all.
+DEBUG=true
+
+# The Access application these values name. Both are readable from Zero Trust >
+# Access controls > Applications; neither is a secret, but they belong here
+# rather than in wrangler.jsonc so that deploying never overwrites them.
+TEAM_DOMAIN=https://your-team.cloudflareaccess.com
+POLICY_AUD=your-application-audience-tag
