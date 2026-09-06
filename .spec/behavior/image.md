@@ -4,9 +4,9 @@ The tool this application offers for turning a prompt into an image, and what
 it hands back.
 
 The model stores what it generates and answers with a link to it. That link is
-short-lived, and it is handed on exactly as given: a call is one-shot, so the
-caller reaches the image while the link still stands, and the Worker never
-carries the image itself.
+presigned and stands for a day, and it is handed on exactly as given: a call is
+one-shot, so the caller reaches the image while the link still stands, and the
+Worker never carries the image itself.
 
 What the image is encoded as is stated only when the caller chose it. A model
 given no format picks its own, and the catalogue that would say which one

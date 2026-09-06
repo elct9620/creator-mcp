@@ -3,9 +3,15 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import app from '../src/index';
 import { aiAnswering, type Generation } from './workers-ai';
 
-// The link the model answers with. Its form is the model's own; the tool hands
-// it on without reading anything into it.
-const IMAGE = 'https://example.r2.cloudflarestorage.com/generated.png?signature=stand-in';
+// A link of the shape Workers AI really answers with: a presigned R2 URL whose
+// signature and expiry ride in the query. The tool hands it on without reading
+// anything into it.
+const IMAGE =
+	'https://ai-gateway-outputs.example.r2.cloudflarestorage.com/provider-outputs/stand-in/stand-in?X-Amz-Expires=86400&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=stand-in';
+
+// The gateway wraps the model's output; `gatewayMetadata` rides along on some
+// answers and not others, which is why nothing but the link is read.
+const answering = (image: string) => ({ state: 'Completed', result: { image } });
 
 const ENDPOINT = new URL('https://creator.example.com/mcp');
 
@@ -32,7 +38,7 @@ let client: Client;
 let generations: Generation[];
 
 beforeEach(async () => {
-	const workersAi = aiAnswering({ image: IMAGE });
+	const workersAi = aiAnswering(answering(IMAGE));
 	generations = workersAi.generations;
 	client = await connect(envWith(workersAi.ai));
 });
@@ -102,7 +108,7 @@ describe('image generation', () => {
 
 	// @behavior I-008
 	it('should fail when the model answers without a link', async () => {
-		const stranded = await connect(envWith(aiAnswering({ state: 'Completed' }).ai));
+		const stranded = await connect(envWith(aiAnswering({ state: 'Completed', result: {} }).ai));
 
 		const result = await stranded.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
 

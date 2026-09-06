@@ -27,13 +27,18 @@ const inputSchema = z.object({
 	image_size: z.enum(IMAGE_SIZES).optional().describe('How much detail the image is generated at.'),
 });
 
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
 /**
- * None of these models is in `AiModels`, so the binding types their answer as
- * an open record and nothing upstream would catch a shape that changed. This
- * is the one place stating what the answer has to carry.
+ * The answer is the gateway's envelope around the model's own output, and none
+ * of these models is in `AiModels`, so the binding types it as an open record
+ * and nothing upstream would catch a shape that changed. This is the one place
+ * stating what the answer has to carry. The envelope carries a `state`, and
+ * `gatewayMetadata` on some answers but not others; the link is the whole of
+ * what is read.
  */
 const linkFrom = (answer: Record<string, unknown>): string => {
-	const { image } = answer;
+	const image = isRecord(answer.result) ? answer.result.image : undefined;
 	if (typeof image !== 'string') throw new Error('The model answered without a link to an image.');
 
 	return image;
