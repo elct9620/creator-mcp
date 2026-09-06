@@ -1,13 +1,24 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { setupNetwork } from '@msw/cloudflare';
+import { http, HttpResponse } from 'msw';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import app from '../src/index';
 import { aiAnswering, type Generation } from './workers-ai';
 
 // A link of the shape Workers AI really answers with: a presigned R2 URL whose
-// signature and expiry ride in the query. The tool hands it on without reading
-// anything into it.
-const IMAGE =
-	'https://ai-gateway-outputs.example.r2.cloudflarestorage.com/provider-outputs/stand-in/stand-in?X-Amz-Expires=86400&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=stand-in';
+// signature and expiry ride in the query, and whose path carries no hint of
+// what it holds. The tool hands it on without reading anything into it.
+const IMAGE_PATH = 'https://ai-gateway-outputs.example.r2.cloudflarestorage.com/provider-outputs/stand-in/stand-in';
+const IMAGE = `${IMAGE_PATH}?X-Amz-Expires=86400&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=stand-in`;
+
+// Standing in for the store the link points at. It is asked for one byte, and
+// what it answers with is the encoding the reply reports.
+const network = setupNetwork();
+
+const storeHolding = (contentType: string) =>
+	http.get(IMAGE_PATH, () => new HttpResponse(null, { status: 206, headers: { 'content-type': contentType } }));
+
+const storeRefusing = () => http.get(IMAGE_PATH, () => new HttpResponse(null, { status: 403 }));
 
 // The gateway wraps the model's output; `gatewayMetadata` rides along on some
 // answers and not others, which is why nothing but the link is read.
@@ -37,7 +48,12 @@ const connect = async (env: Env) => {
 let client: Client;
 let generations: Generation[];
 
+beforeAll(() => network.enable());
+afterAll(() => network.disable());
+
 beforeEach(async () => {
+	network.resetHandlers(storeHolding('image/jpeg'));
+
 	const workersAi = aiAnswering(answering(IMAGE));
 	generations = workersAi.generations;
 	client = await connect(envWith(workersAi.ai));
@@ -93,14 +109,25 @@ describe('image generation', () => {
 	});
 
 	// @behavior I-006
-	it('should name the encoding when the caller asked for one', async () => {
+	it('should state what the store holds when the caller asked for something else', async () => {
+		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'png' });
+
+		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/jpeg' })]);
+	});
+
+	// @behavior I-007
+	it('should state the format the caller asked for when the store will not say', async () => {
+		network.resetHandlers(storeRefusing());
+
 		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'webp' });
 
 		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/webp' })]);
 	});
 
-	// @behavior I-007
-	it('should leave the encoding unstated when the caller asked for none', async () => {
+	// @behavior I-009
+	it('should state no encoding when neither the store nor the caller gives one', async () => {
+		network.resetHandlers(storeRefusing());
+
 		const { content } = await createImage({ prompt: 'a red bicycle' });
 
 		expect(content).toEqual([expect.not.objectContaining({ mimeType: expect.anything() })]);

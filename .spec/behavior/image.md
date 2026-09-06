@@ -8,10 +8,12 @@ presigned and stands for a day, and it is handed on exactly as given: a call is
 one-shot, so the caller reaches the image while the link still stands, and the
 Worker never carries the image itself.
 
-What the image is encoded as is stated only when the caller chose it. A model
-given no format picks its own, and the catalogue that would say which one
-contradicts itself, so an encoding nobody stated is left unstated rather than
-guessed at.
+The output format a caller asks for is a hint the model may not honour — an
+image asked for as PNG comes back stored as JPEG — so what the reply says about
+the encoding is read from the stored image rather than from the request. One
+byte is enough to be told: the store answers with the encoding while the image
+stays where it is. A store that will not answer leaves the format the caller
+asked for as the best that can be said.
 
 ## Includes
 
@@ -57,21 +59,21 @@ guessed at.
 | When  | `create_image` replies                                  |
 | Then  | the reply carries that link as given                    |
 
-## `I-006` The encoding the caller asked for
+## `I-006` The encoding the stored image is in
 
-| Step  | Statement                        |
-| ----- | -------------------------------- |
-| Given | a caller naming an output format |
-| When  | `create_image` replies           |
-| Then  | the link states that encoding    |
+| Step  | Statement                                                    |
+| ----- | ------------------------------------------------------------ |
+| Given | a store saying what the image is encoded as                  |
+| When  | `create_image` replies                                       |
+| Then  | the link states that encoding, whatever the caller asked for |
 
-## `I-007` The encoding nobody asked for
+## `I-007` An encoding the store will not give
 
-| Step  | Statement                              |
-| ----- | -------------------------------------- |
-| Given | a caller naming no output format       |
-| When  | `create_image` replies                 |
-| Then  | the link states no encoding of its own |
+| Step  | Statement                                                  |
+| ----- | ---------------------------------------------------------- |
+| Given | a store that will not say, and a caller who named a format |
+| When  | `create_image` replies                                     |
+| Then  | the link states the format the caller asked for            |
 
 ## `I-008` A model answering without a link
 
@@ -80,3 +82,11 @@ guessed at.
 | Given | an answer carrying no link to an image |
 | When  | `create_image` replies                 |
 | Then  | the call fails                         |
+
+## `I-009` An encoding nobody can give
+
+| Step  | Statement                                                   |
+| ----- | ----------------------------------------------------------- |
+| Given | a store that will not say, and a caller who named no format |
+| When  | `create_image` replies                                      |
+| Then  | the link states no encoding                                 |

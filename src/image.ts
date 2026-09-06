@@ -44,6 +44,32 @@ const linkFrom = (answer: Record<string, unknown>): string => {
 	return image;
 };
 
+// Long enough for a store that is answering, short enough that one which is
+// not leaves the reply to the format the caller asked for instead of waiting.
+const ENCODING_TIMEOUT_MS = 5000;
+
+/**
+ * What the stored image is really encoded as. A caller's output format is a
+ * hint the model may not honour, so the store is asked rather than trusted to
+ * have obeyed. One byte answers it: the range keeps the image out of the
+ * Worker while the response states its type, and the link is signed for `GET`
+ * alone, so a `HEAD` would be refused.
+ */
+const storedEncodingOf = async (link: string): Promise<string | undefined> => {
+	try {
+		const response = await fetch(link, {
+			headers: { range: 'bytes=0-0' },
+			signal: AbortSignal.timeout(ENCODING_TIMEOUT_MS),
+		});
+		await response.body?.cancel();
+		if (!response.ok) return undefined;
+
+		return response.headers.get('content-type')?.split(';')[0].trim() || undefined;
+	} catch {
+		return undefined;
+	}
+};
+
 export const registerCreateImage = (server: McpServer, ai: Ai) =>
 	server.registerTool(
 		'create_image',
@@ -54,15 +80,17 @@ export const registerCreateImage = (server: McpServer, ai: Ai) =>
 		},
 		async ({ prompt, model, ...generation }) => {
 			const answer = await ai.run(model, { prompt, ...generation });
+			const link = linkFrom(answer);
+			const asked = generation.output_format ? MIME_TYPES[generation.output_format] : undefined;
 
 			return {
 				content: [
 					{
 						type: 'resource_link',
-						uri: linkFrom(answer),
+						uri: link,
 						name: 'generated-image',
 						title: prompt,
-						mimeType: generation.output_format ? MIME_TYPES[generation.output_format] : undefined,
+						mimeType: (await storedEncodingOf(link)) ?? asked,
 					},
 				],
 			};
