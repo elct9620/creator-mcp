@@ -7,8 +7,22 @@
 	"name": "creator-kit",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-09-03",
+	/**
+	 * Every step this Worker takes is a wait on something else, so an
+	 * invocation record is where a failure becomes visible at all. Traces are
+	 * named rather than left to the default because Cloudflare intends to start
+	 * them alongside logs under a bare `enabled`, and they bill at the logs rate
+	 * from 2026-10-01 — a cost nothing here asks for.
+	 * https://developers.cloudflare.com/workers/observability/traces/
+	 */
 	"observability": {
-		"enabled": true,
+		"logs": {
+			"enabled": true,
+			"invocation_logs": true,
+		},
+		"traces": {
+			"enabled": false,
+		},
 	},
 	"upload_source_maps": true,
 	/**
