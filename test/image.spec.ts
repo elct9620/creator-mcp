@@ -1,9 +1,9 @@
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client';
 import { setupNetwork } from '@msw/cloudflare';
+import { env, exports } from 'cloudflare:workers';
 import { http, HttpResponse } from 'msw';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import app from '../src/index';
-import { arrivingMatched } from './access';
+import { asMatched } from './access';
 import { aiAnswering, type Generation } from './workers-ai';
 
 // A link of the shape Workers AI really answers with: a presigned R2 URL whose
@@ -35,14 +35,18 @@ const answering = (image: string) => ({ state: 'Completed', result: { image } })
 
 const ENDPOINT = new URL('https://creator.example.com/mcp');
 
-// Access is settled in its own feature; every caller here arrives matched.
-const envWith = (ai: Ai, AI_GATEWAY = ''): Env => ({ AI_GATEWAY, AI: ai });
+// A binding assigned here is what the Worker answers with, so every client
+// states the model and gateway its own test is about. Whatever the last one
+// set stays until the next one says otherwise, which is why both are named
+// every time rather than only the one under test.
+const connect = async (ai: Ai, AI_GATEWAY = '') => {
+	Object.assign(env, { AI: ai, AI_GATEWAY });
 
-const connect = async (env: Env) => {
 	const client = new Client({ name: 'test-harness', version: '0.0.0' });
 	await client.connect(
 		new StreamableHTTPClientTransport(ENDPOINT, {
-			fetch: async (url, init) => app.fetch(new Request(url, init), env, arrivingMatched()),
+			// Access is settled in its own feature; every caller here arrives matched.
+			fetch: async (url, init) => exports.default.fetch(asMatched(new Request(url, init))),
 		}),
 	);
 
@@ -61,7 +65,7 @@ beforeEach(async () => {
 
 	const workersAi = aiAnswering(answering(IMAGE));
 	generations = workersAi.generations;
-	client = await connect(envWith(workersAi.ai));
+	client = await connect(workersAi.ai);
 });
 
 afterEach(() => client.close());
@@ -140,7 +144,7 @@ describe('image generation', () => {
 
 	// @behavior I-008
 	it('should fail when the model answers without a link', async () => {
-		const stranded = await connect(envWith(aiAnswering({ state: 'Completed', result: {} }).ai));
+		const stranded = await connect(aiAnswering({ state: 'Completed', result: {} }).ai);
 
 		const result = await stranded.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
 
@@ -167,7 +171,7 @@ describe('image generation', () => {
 	// @behavior I-011
 	it('should reach the model through the gateway when a deployment names one', async () => {
 		const workersAi = aiAnswering(answering(IMAGE));
-		const routed = await connect(envWith(workersAi.ai, 'hibi'));
+		const routed = await connect(workersAi.ai, 'hibi');
 
 		await routed.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
 
