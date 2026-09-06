@@ -4,6 +4,8 @@ import { name, version } from '../package.json';
 import { accessGuard } from './access';
 import { registerCreateImage } from './image';
 
+const gatewayFor = ({ AI_GATEWAY }: Env): AiOptions | undefined => (AI_GATEWAY ? { gateway: { id: AI_GATEWAY } } : undefined);
+
 // The tools serve with the bindings of the request they answer, and the route
 // is the only place those are in hand: what a Worker reaches from module scope
 // is its own env rather than the one a caller handed the app. Building the
@@ -13,7 +15,7 @@ import { registerCreateImage } from './image';
 const handlerFor = (env: Env) =>
 	createMcpHandler(() => {
 		const server = new McpServer({ name, version });
-		registerCreateImage(server, env.AI);
+		registerCreateImage(server, env.AI, gatewayFor(env));
 
 		return server;
 	});

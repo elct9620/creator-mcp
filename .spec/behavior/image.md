@@ -20,6 +20,10 @@ is requested on that alone. Nothing about it is checked, because nothing else
 decides what the Worker reaches for: a link it should not follow would have to
 come from Workers AI itself.
 
+Which AI Gateway the model is reached through is a deployment's answer rather
+than a caller's, because it decides how the inference is billed and rate
+limited. A deployment that names none reaches Workers AI directly.
+
 ## Includes
 
 - `test/image.spec.ts`
@@ -103,3 +107,19 @@ come from Workers AI itself.
 | Given | a store holding the image that was generated |
 | When  | `create_image` asks what it is encoded as    |
 | Then  | it asks for a single byte                    |
+
+## `I-011` The gateway a deployment names
+
+| Step  | Statement                                 |
+| ----- | ----------------------------------------- |
+| Given | a deployment naming an AI Gateway         |
+| When  | `create_image` generates                  |
+| Then  | the model is reached through that gateway |
+
+## `I-012` A deployment naming no gateway
+
+| Step  | Statement                         |
+| ----- | --------------------------------- |
+| Given | a deployment naming no AI Gateway |
+| When  | `create_image` generates          |
+| Then  | the model is reached directly     |

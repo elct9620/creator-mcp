@@ -70,7 +70,7 @@ const storedEncodingOf = async (link: string): Promise<string | undefined> => {
 	}
 };
 
-export const registerCreateImage = (server: McpServer, ai: Ai) =>
+export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptions) =>
 	server.registerTool(
 		'create_image',
 		{
@@ -79,7 +79,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai) =>
 			inputSchema,
 		},
 		async ({ prompt, model, ...generation }) => {
-			const answer = await ai.run(model, { prompt, ...generation });
+			const answer = await ai.run(model, { prompt, ...generation }, options);
 			const link = linkFrom(answer);
 			const asked = generation.output_format ? MIME_TYPES[generation.output_format] : undefined;
 

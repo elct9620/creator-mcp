@@ -35,11 +35,11 @@ const answering = (image: string) => ({ state: 'Completed', result: { image } })
 const ENDPOINT = new URL('https://creator.example.com/mcp');
 
 // Access is settled in its own feature; DEBUG carries every caller here through.
-const envWith = (ai: Ai): Env => ({
+const envWith = (ai: Ai, AI_GATEWAY = ''): Env => ({
 	DEBUG: 'true',
 	TEAM_NAME: 'creator',
 	POLICY_AUD: 'test-policy-aud',
-	AI_GATEWAY: '',
+	AI_GATEWAY,
 	AI: ai,
 });
 
@@ -167,5 +167,23 @@ describe('image generation', () => {
 		await createImage({ prompt: 'a red bicycle' });
 
 		expect(ranges).toEqual(['bytes=0-0']);
+	});
+
+	// @behavior I-011
+	it('should reach the model through the gateway when a deployment names one', async () => {
+		const workersAi = aiAnswering(answering(IMAGE));
+		const routed = await connect(envWith(workersAi.ai, 'hibi'));
+
+		await routed.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
+
+		expect(workersAi.generations[0].options).toMatchObject({ gateway: { id: 'hibi' } });
+		await routed.close();
+	});
+
+	// @behavior I-012
+	it('should reach the model directly when a deployment names no gateway', async () => {
+		await createImage({ prompt: 'a red bicycle' });
+
+		expect(generations[0].options?.gateway).toBeUndefined();
 	});
 });
