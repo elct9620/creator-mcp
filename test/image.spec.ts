@@ -201,4 +201,14 @@ describe('image generation', () => {
 
 		expect(structuredContent).toStrictEqual({ uri: IMAGE });
 	});
+
+	// @behavior I-015
+	it('should state the shape of its reply when a client lists the tools', async () => {
+		const { tools } = await client.listTools();
+
+		expect(tools.find(({ name }) => name === 'create_image')?.outputSchema).toMatchObject({
+			properties: { uri: { type: 'string' }, mime_type: { type: 'string' } },
+			required: ['uri'],
+		});
+	});
 });

@@ -148,3 +148,11 @@ and no third fact.
 | Given | a store that will not say, and a caller who named no format |
 | When  | `create_image` replies                                      |
 | Then  | the structured content states no encoding                   |
+
+## `I-015` The tool says what it answers with
+
+| Step  | Statement                                                    |
+| ----- | ------------------------------------------------------------ |
+| Given | an endpoint serving the tool                                 |
+| When  | a client lists the tools                                     |
+| Then  | `create_image` states the shape of the reply it answers with |
