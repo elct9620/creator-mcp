@@ -21,6 +21,7 @@ export default defineConfig({
 					DEBUG: 'false',
 					TEAM_NAME: 'creator',
 					POLICY_AUD: 'test-policy-aud',
+					AI_GATEWAY: '',
 				},
 			},
 		}),

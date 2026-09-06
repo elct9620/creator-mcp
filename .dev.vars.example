@@ -7,3 +7,7 @@ DEBUG=true
 # rather than in wrangler.jsonc so that deploying never overwrites them.
 TEAM_NAME=your-team
 POLICY_AUD=your-application-audience-tag
+
+# The AI Gateway the models are reached through, which decides how inference is
+# billed and rate limited. Empty reaches Workers AI directly.
+AI_GATEWAY=

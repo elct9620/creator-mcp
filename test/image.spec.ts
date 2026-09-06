@@ -39,6 +39,7 @@ const envWith = (ai: Ai): Env => ({
 	DEBUG: 'true',
 	TEAM_NAME: 'creator',
 	POLICY_AUD: 'test-policy-aud',
+	AI_GATEWAY: '',
 	AI: ai,
 });
 

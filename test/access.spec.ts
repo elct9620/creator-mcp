@@ -9,6 +9,7 @@ const ENV = {
 	DEBUG: 'false',
 	TEAM_NAME: 'creator',
 	POLICY_AUD: 'test-policy-aud',
+	AI_GATEWAY: '',
 	AI: unreachableAi(),
 } satisfies Env;
 
