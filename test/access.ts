@@ -8,6 +8,9 @@ const MATCHED = {
 	jwt_claims: { email: 'someone@example.com' },
 };
 
+// miniflare's own `CoreHeaders.ACCESS_BLOB`.
+const ACCESS_BLOB = 'MF-Access-Blob';
+
 /**
  * How a request says Cloudflare Access matched it. workerd reads this header
  * and builds `ctx.access` from it itself, so a test driving the Worker through
@@ -19,7 +22,11 @@ const MATCHED = {
  * `cloudflare:test` simulates Access, so there is no documented seam to reach
  * for instead; if the name moves, A-002 answers 401 and says so.
  */
-export const matchedHeaders = () => ({ 'MF-Access-Blob': JSON.stringify(MATCHED) });
+export const asMatched = (request: Request) => {
+	request.headers.set(ACCESS_BLOB, JSON.stringify(MATCHED));
+
+	return request;
+};
 
 /**
  * The execution context for a test that cannot go through that entry — one
