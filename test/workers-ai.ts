@@ -17,7 +17,7 @@ export const unreachableAi = () =>
 		},
 	}) as unknown as Ai;
 
-export type Generation = { model: string; inputs: Record<string, unknown> };
+export type Generation = { model: string; inputs: Record<string, unknown>; options?: AiOptions };
 
 /**
  * Answers every call with `answer` and records what it was asked, which is
@@ -29,8 +29,8 @@ export const aiAnswering = (answer: Record<string, unknown>) => {
 	return {
 		generations,
 		ai: {
-			run: (model: string, inputs: Record<string, unknown>) => {
-				generations.push({ model, inputs });
+			run: (model: string, inputs: Record<string, unknown>, options?: AiOptions) => {
+				generations.push({ model, inputs, options });
 
 				return Promise.resolve(answer);
 			},
