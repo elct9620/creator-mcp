@@ -124,6 +124,15 @@ describe('image generation', () => {
 		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/webp' })]);
 	});
 
+	// @behavior I-007
+	it('should state the format the caller asked for when the store cannot be reached', async () => {
+		network.resetHandlers(http.get(IMAGE_PATH, () => HttpResponse.error()));
+
+		const { content } = await createImage({ prompt: 'a red bicycle', output_format: 'webp' });
+
+		expect(content).toEqual([expect.objectContaining({ mimeType: 'image/webp' })]);
+	});
+
 	// @behavior I-009
 	it('should state no encoding when neither the store nor the caller gives one', async () => {
 		network.resetHandlers(storeRefusing());

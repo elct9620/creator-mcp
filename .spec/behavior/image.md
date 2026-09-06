@@ -8,12 +8,17 @@ presigned and stands for a day, and it is handed on exactly as given: a call is
 one-shot, so the caller reaches the image while the link still stands, and the
 Worker never carries the image itself.
 
-The output format a caller asks for is a hint the model may not honour — an
-image asked for as PNG comes back stored as JPEG — so what the reply says about
-the encoding is read from the stored image rather than from the request. One
+The output format a caller asks for is not a promise about the stored image —
+one asked for as PNG has come back stored as JPEG — so what the reply says
+about the encoding is read from the store rather than from the request. One
 byte is enough to be told: the store answers with the encoding while the image
 stays where it is. A store that will not answer leaves the format the caller
 asked for as the best that can be said.
+
+The address the store is asked at is the one the binding answered with, and it
+is requested on that alone. Nothing about it is checked, because nothing else
+decides what the Worker reaches for: a link it should not follow would have to
+come from Workers AI itself.
 
 ## Includes
 
