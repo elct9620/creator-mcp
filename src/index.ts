@@ -1,11 +1,30 @@
-import { createMcpHandler, McpServer, originValidationResponse } from '@modelcontextprotocol/server';
+import { createMcpHandler, McpServer, originValidationResponse, type McpHttpHandler } from '@modelcontextprotocol/server';
 import { Hono } from 'hono';
 import { name, version } from '../package.json';
 import { accessGuard } from './access';
+import { registerCreateImage } from './image';
 
-// The factory runs per request and the handler keeps nothing between them,
-// which is what lets this Worker serve MCP without a Durable Object.
-const mcp = createMcpHandler(() => new McpServer({ name, version }));
+// The server is built per request and keeps nothing between them, which is
+// what lets this Worker serve MCP without a Durable Object. The handler around
+// it is not per request — it holds the subscription bus and the exchanges
+// still in flight — so it is kept for as long as the bindings it was built
+// against. A Worker has one env, and so one handler; handing the app another
+// env is what lets a caller serve the endpoint against bindings of its own.
+const handlers = new WeakMap<Env, McpHttpHandler>();
+
+const handlerFor = (env: Env) => {
+	let handler = handlers.get(env);
+	if (!handler) {
+		handler = createMcpHandler(() => {
+			const server = new McpServer({ name, version });
+			registerCreateImage(server, env.AI);
+
+			return server;
+		});
+		handlers.set(env, handler);
+	}
+	return handler;
+};
 
 // No browser is a legitimate caller here, so no origin is allowed. A client
 // that sends none — every agent — still passes; one that sends any is a page
@@ -22,6 +41,6 @@ app.get('/', (c) => c.text('Coming Soon'));
 app.use('/mcp', accessGuard());
 
 // @route ALL /mcp
-app.all('/mcp', (c) => originValidationResponse(c.req.raw, ALLOWED_ORIGINS) ?? mcp.fetch(c.req.raw));
+app.all('/mcp', (c) => originValidationResponse(c.req.raw, ALLOWED_ORIGINS) ?? handlerFor(c.env).fetch(c.req.raw));
 
 export default app;

@@ -34,11 +34,4 @@ describe('MCP endpoint', () => {
 	it('should answer a ping', async () => {
 		await expect(client.ping()).resolves.toEqual({});
 	});
-
-	// @behavior M-002
-	it('should carry no tools of its own yet', async () => {
-		const { tools } = await client.listTools();
-
-		expect(tools).toEqual([]);
-	});
 });

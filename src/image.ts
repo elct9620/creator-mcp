@@ -1,0 +1,66 @@
+import type { McpServer } from '@modelcontextprotocol/server';
+import { z } from 'zod';
+
+/**
+ * The models this tool generates with. Each one answers with a link to what it
+ * stored rather than with the image itself; a model that returns image bytes
+ * would need a different reply and does not belong on this list.
+ */
+const MODELS = ['google/nano-banana-pro'] as const;
+const DEFAULT_MODEL = 'google/nano-banana-pro';
+
+const ASPECT_RATIOS = ['1:1', '3:2', '2:3', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'] as const;
+const OUTPUT_FORMATS = ['jpg', 'png', 'webp'] as const;
+const IMAGE_SIZES = ['1K', '2K', '4K'] as const;
+
+const MIME_TYPES: Record<(typeof OUTPUT_FORMATS)[number], string> = {
+	jpg: 'image/jpeg',
+	png: 'image/png',
+	webp: 'image/webp',
+};
+
+const inputSchema = z.object({
+	prompt: z.string().describe('What the image should show.'),
+	model: z.enum(MODELS).default(DEFAULT_MODEL).describe('The model to generate with.'),
+	aspect_ratio: z.enum(ASPECT_RATIOS).optional().describe('The shape of the image.'),
+	output_format: z.enum(OUTPUT_FORMATS).optional().describe('The encoding the image is stored in.'),
+	image_size: z.enum(IMAGE_SIZES).optional().describe('How much detail the image is generated at.'),
+});
+
+/**
+ * None of these models is in `AiModels`, so the binding types their answer as
+ * an open record and nothing upstream would catch a shape that changed. This
+ * is the one place stating what the answer has to carry.
+ */
+const linkFrom = (answer: Record<string, unknown>): string => {
+	const { image } = answer;
+	if (typeof image !== 'string') throw new Error('The model answered without a link to an image.');
+
+	return image;
+};
+
+export const registerCreateImage = (server: McpServer, ai: Ai) =>
+	server.registerTool(
+		'create_image',
+		{
+			title: 'Create image',
+			description:
+				'Generate an image from a prompt. The reply links to the generated image rather than carrying it.',
+			inputSchema,
+		},
+		async ({ prompt, model, ...generation }) => {
+			const answer = await ai.run(model, { prompt, ...generation });
+
+			return {
+				content: [
+					{
+						type: 'resource_link',
+						uri: linkFrom(answer),
+						name: 'generated-image',
+						title: prompt,
+						mimeType: generation.output_format ? MIME_TYPES[generation.output_format] : undefined,
+					},
+				],
+			};
+		},
+	);
