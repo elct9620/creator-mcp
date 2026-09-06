@@ -231,7 +231,7 @@ describe('audio generation', () => {
 	// generated, so every case says the model was never reached.
 	// @behavior AU-015
 	it('should refuse when the text is longer than the model speaks', async () => {
-		const result = await createAudio({ text: 'a'.repeat(4097) });
+		const result = await createAudio({ text: 'a'.repeat(4097), model: 'openai/tts-1' });
 
 		expect(result.isError).toBe(true);
 		expect(generations).toHaveLength(0);
