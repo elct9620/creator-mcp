@@ -190,6 +190,15 @@ describe('image generation', () => {
 	it('should carry the link and its encoding as structured content when the model answers', async () => {
 		const { structuredContent } = await createImage({ prompt: 'a red bicycle' });
 
-		expect(structuredContent).toEqual({ uri: IMAGE, mime_type: 'image/jpeg' });
+		expect(structuredContent).toStrictEqual({ uri: IMAGE, mime_type: 'image/jpeg' });
+	});
+
+	// @behavior I-014
+	it('should state no encoding in the structured content when neither the store nor the caller gives one', async () => {
+		network.resetHandlers(storeRefusing());
+
+		const { structuredContent } = await createImage({ prompt: 'a red bicycle' });
+
+		expect(structuredContent).toStrictEqual({ uri: IMAGE });
 	});
 });

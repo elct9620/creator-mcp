@@ -140,3 +140,11 @@ and no third fact.
 | Given | a model answering with a link to the image it generated                    |
 | When  | `create_image` replies                                                     |
 | Then  | the structured content carries that link and the encoding the reply states |
+
+## `I-014` A structured reply with no encoding to give
+
+| Step  | Statement                                                   |
+| ----- | ----------------------------------------------------------- |
+| Given | a store that will not say, and a caller who named no format |
+| When  | `create_image` replies                                      |
+| Then  | the structured content states no encoding                   |
