@@ -131,11 +131,13 @@ describe('image generation', () => {
 		expect(linkIn(content)).toMatchObject({ mimeType: 'image/jpeg' });
 	});
 
+	// webp is the encoding only `google/nano-banana-pro` stores, which is why
+	// these two name it: the promise is about the fallback, not about the model.
 	// @behavior I-007
 	it('should state the format the caller asked for when the store will not say', async () => {
 		network.resetHandlers(storeRefusing());
 
-		const { content } = await createImage({ prompt: 'a red bicycle', format: 'webp' });
+		const { content } = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-pro', format: 'webp' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'image/webp' });
 	});
@@ -144,7 +146,7 @@ describe('image generation', () => {
 	it('should state the format the caller asked for when the store cannot be reached', async () => {
 		network.resetHandlers(http.get(IMAGE_PATH, () => HttpResponse.error()));
 
-		const { content } = await createImage({ prompt: 'a red bicycle', format: 'webp' });
+		const { content } = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-pro', format: 'webp' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'image/webp' });
 	});
@@ -247,5 +249,21 @@ describe('image generation', () => {
 		await createImage({ prompt: 'a red bicycle' });
 
 		expect(generations[0].inputs).toMatchObject({ resolution: '1K' });
+	});
+
+	// @behavior I-018
+	it('should refuse an encoding the model cannot store', async () => {
+		const result = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-2', format: 'webp' });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
+	});
+
+	// @behavior I-019
+	it('should refuse a resolution the model cannot generate', async () => {
+		const result = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-2-lite', resolution: '4K' });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
 	});
 });

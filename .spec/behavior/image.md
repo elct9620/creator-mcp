@@ -28,6 +28,14 @@ cheapest, and a caller who said nothing has not asked to pay more; which one
 the model would otherwise reach for is undocumented, so naming one is also what
 makes the same call answer the same way twice.
 
+A request the chosen model cannot honour is refused before it is sent, because
+the alternative is an image that quietly is not what was asked for: an encoding
+that fell back to the model's own, a resolution the model never had.
+`google/nano-banana-pro` is the only one that stores webp, and
+`google/nano-banana-2-lite` generates 1K alone. What the schema cannot state
+and a description can only advise, the call itself enforces, and each refusal
+names the way out so a caller can ask again rather than only be told no.
+
 The format a caller asks for is not a promise about the stored image —
 one asked for as PNG has come back stored as JPEG — so what the reply says
 about the encoding is read from the store rather than from the request. One
@@ -193,3 +201,19 @@ long the link stands as well as where it points.
 | Given | a call naming no resolution    |
 | When  | `create_image` generates       |
 | Then  | the image is generated at `1K` |
+
+## `I-018` An encoding the model cannot store
+
+| Step  | Statement                                    |
+| ----- | -------------------------------------------- |
+| Given | an encoding the chosen model does not store  |
+| When  | `create_image` is called                     |
+| Then  | the call fails and nothing reaches the model |
+
+## `I-019` A resolution the model cannot generate
+
+| Step  | Statement                                       |
+| ----- | ----------------------------------------------- |
+| Given | a resolution the chosen model does not generate |
+| When  | `create_image` is called                        |
+| Then  | the call fails and nothing reaches the model    |

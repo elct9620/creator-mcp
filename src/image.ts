@@ -94,6 +94,28 @@ const PAINTERS: Record<Model, Painter> = {
 	},
 };
 
+/**
+ * A request the chosen model cannot honour is refused before it is sent,
+ * because the alternative is an image that quietly is not what was asked for:
+ * an encoding that fell back to the model's own, a resolution it never had.
+ * Each refusal names the way out, so a caller can ask again rather than only
+ * be told no.
+ *
+ * It is thrown from the call rather than declared in the schema, because the
+ * constraint is per model and a tool's `inputSchema` is one JSON Schema object
+ * with nowhere to put it. Thrown, it comes back as a tool error carrying the
+ * sentence, which is the form that reaches the model that called.
+ */
+const refuseWhatItCannotDo = (model: Model, { format, resolution }: Drawn) => {
+	const painter = PAINTERS[model];
+
+	if (format !== undefined && !painter.formats.includes(format))
+		throw new Error(`${model} cannot store ${format}. It stores ${painter.formats.join(', ')}.`);
+
+	if (!painter.resolutions.includes(resolution))
+		throw new Error(`${model} cannot generate ${resolution}. It generates ${painter.resolutions.join(', ')}.`);
+};
+
 const inputSchema = z.object({
 	prompt: z.string().describe('What the image should show.'),
 	model: z
@@ -126,8 +148,9 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 			outputSchema,
 		},
 		async ({ model, ...drawn }) => {
-			const painter = PAINTERS[model];
-			const answer = await ai.run(model, painter.request(drawn), options);
+			refuseWhatItCannotDo(model, drawn);
+
+			const answer = await ai.run(model, PAINTERS[model].request(drawn), options);
 			const link = linkFrom(answer, 'image');
 			const asked = drawn.format ? MIME_TYPES[drawn.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? asked;
