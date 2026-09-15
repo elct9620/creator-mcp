@@ -8,12 +8,18 @@ import { linkFrom, storedEncodingOf } from './stored';
  * stored rather than with the image itself; a model that returns image bytes
  * would need a different reply and does not belong on this list.
  */
-const MODELS = ['google/nano-banana-pro', 'google/nano-banana-2', 'google/nano-banana-2-lite'] as const;
+const MODELS = [
+	'google/nano-banana-pro',
+	'google/nano-banana-2',
+	'google/nano-banana-2-lite',
+	'openai/gpt-image-2.5-flare',
+	'openai/gpt-image-2.5-sunburst',
+] as const;
 
 /**
  * The same reason that picks the smallest resolution picks the model: a caller
- * who said nothing has not asked to pay more, and the provider's tiers put this
- * one below `google/nano-banana-pro`. It is not the cheapest tier —
+ * who said nothing has not asked to pay more, and Google's tiers put this one
+ * below `google/nano-banana-pro`. It is not Google's cheapest tier —
  * `google/nano-banana-2-lite` is — but that one generates 1K alone, and a
  * default that quietly caps what can be asked for is a different thing from a
  * default that costs less.
@@ -74,6 +80,18 @@ type Painter = {
 /** Every one of these words, called by the model what this tool calls it. */
 const alike = <Word extends string>(words: readonly Word[]) => Object.fromEntries(words.map((word) => [word, word])) as Record<Word, Word>;
 
+/**
+ * Both GPT Image models are asked for a size in pixels, and Cloudflare's schema
+ * admits three. Each is reached by the shape it has at `1K`, so a caller names
+ * the image the way they would for any other model.
+ */
+const GPT_IMAGE: Painter = {
+	formats: { jpg: 'jpeg', png: 'png', webp: 'webp' },
+	shapes: { '1:1': '1024x1024', '2:3': '1024x1536', '3:2': '1536x1024' },
+	resolutions: ['1K'],
+	request: ({ prompt, aspect_ratio, format }) => ({ prompt, size: aspect_ratio, output_format: format }),
+};
+
 const PAINTERS: Record<Model, Painter> = {
 	'google/nano-banana-pro': {
 		formats: alike(['jpg', 'png', 'webp']),
@@ -93,6 +111,8 @@ const PAINTERS: Record<Model, Painter> = {
 		resolutions: ['1K'],
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
 	},
+	'openai/gpt-image-2.5-flare': GPT_IMAGE,
+	'openai/gpt-image-2.5-sunburst': GPT_IMAGE,
 };
 
 const inputSchema = z.object({
@@ -101,15 +121,19 @@ const inputSchema = z.object({
 		.enum(MODELS)
 		.default(DEFAULT_MODEL)
 		.describe(
-			'The model to generate with. google/nano-banana-pro costs the most and is the only one that stores webp; ' +
-				'google/nano-banana-2-lite is the cheapest and generates 1K alone.',
+			'The model to generate with. Of the nano banana models, google/nano-banana-pro costs the most and ' +
+				'google/nano-banana-2-lite the least. Of the GPT Image models, openai/gpt-image-2.5-flare is the faster ' +
+				'and openai/gpt-image-2.5-sunburst the more capable.',
 		),
-	aspect_ratio: z.enum(ASPECT_RATIOS).optional().describe('The shape of the image.'),
-	format: z.enum(FORMATS).optional().describe('The encoding the image is stored in. Only google/nano-banana-pro stores webp.'),
+	aspect_ratio: z.enum(ASPECT_RATIOS).optional().describe('The shape of the image. The GPT Image models draw 1:1, 2:3 or 3:2 alone.'),
+	format: z
+		.enum(FORMATS)
+		.optional()
+		.describe('The encoding the image is stored in. google/nano-banana-2 and google/nano-banana-2-lite do not store webp.'),
 	resolution: z
 		.enum(RESOLUTIONS)
 		.default(DEFAULT_RESOLUTION)
-		.describe('How large the generated image is. google/nano-banana-2-lite generates 1K alone.'),
+		.describe('How large the generated image is. google/nano-banana-2-lite and the GPT Image models generate 1K alone.'),
 });
 
 const outputSchema = z.object({
@@ -123,20 +147,23 @@ type Asked = Omit<z.infer<typeof inputSchema>, 'model'>;
 /**
  * A request the chosen model cannot honour is refused before it is sent,
  * because the alternative is an image that quietly is not what was asked for:
- * an encoding that fell back to the model's own, a resolution it never had.
- * Each refusal names the way out, so a caller can ask again rather than only
- * be told no.
+ * an encoding that fell back to the model's own, a shape or a resolution it
+ * never had. Each refusal names the way out, so a caller can ask again rather
+ * than only be told no.
  *
  * It is thrown from the call rather than declared in the schema, because the
  * constraint is per model and a tool's `inputSchema` is one JSON Schema object
  * with nowhere to put it. Thrown, it comes back as a tool error carrying the
  * sentence, which is the form that reaches the model that called.
  */
-const refuseWhatItCannotDo = (model: Model, { format, resolution }: Asked) => {
+const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution }: Asked) => {
 	const painter = PAINTERS[model];
 
 	if (format !== undefined && painter.formats[format] === undefined)
 		throw new Error(`${model} cannot store ${format}. It stores ${Object.keys(painter.formats).join(', ')}.`);
+
+	if (aspect_ratio !== undefined && painter.shapes[aspect_ratio] === undefined)
+		throw new Error(`${model} cannot draw ${aspect_ratio}. It draws ${Object.keys(painter.shapes).join(', ')}.`);
 
 	if (!painter.resolutions.includes(resolution))
 		throw new Error(`${model} cannot generate ${resolution}. It generates ${painter.resolutions.join(', ')}.`);

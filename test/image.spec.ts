@@ -102,12 +102,14 @@ describe('image generation', () => {
 		expect(generations[0].model).toBe('google/nano-banana-2');
 	});
 
-	// The caller says `format` and `resolution` whichever model generates; each
-	// model is asked in its own words. `google/nano-banana-pro` is the one that
-	// calls the resolution something else, so the three cases together are what
-	// watches the translation rather than a single spelling. An exact match
-	// rather than a subset: a key the model never asked for is as wrong as a key
-	// under the wrong name, which is why one case names no shape.
+	// The caller says `aspect_ratio`, `format` and `resolution` whichever model
+	// generates; each model is asked in its own words. `google/nano-banana-pro`
+	// calls the resolution something else, and a GPT Image model is asked for a
+	// size in pixels and for `jpeg`, so the cases together are what watches the
+	// translation rather than a single spelling. An exact match rather than a
+	// subset: a key the model never asked for is as wrong as a key under the
+	// wrong name, which is why one case names no shape and the GPT Image models
+	// are sent no resolution.
 	// @behavior I-004
 	it.each([
 		[
@@ -121,6 +123,8 @@ describe('image generation', () => {
 			{ aspect_ratio: '16:9', output_format: 'png', resolution: '2K' },
 		],
 		['google/nano-banana-2-lite', { format: 'jpg', resolution: '1K' }, { output_format: 'jpg', resolution: '1K' }],
+		['openai/gpt-image-2.5-flare', { aspect_ratio: '3:2', format: 'jpg', resolution: '1K' }, { size: '1536x1024', output_format: 'jpeg' }],
+		['openai/gpt-image-2.5-sunburst', { aspect_ratio: '2:3', format: 'webp' }, { size: '1024x1536', output_format: 'webp' }],
 	])('should ask %s in its own words when the caller gives generation options', async (model, asked, expected) => {
 		await createImage({ prompt: 'a red bicycle', model, ...asked });
 
@@ -272,6 +276,14 @@ describe('image generation', () => {
 	// @behavior I-019
 	it('should refuse a resolution the model cannot generate', async () => {
 		const result = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-2-lite', resolution: '4K' });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
+	});
+
+	// @behavior I-020
+	it('should refuse a shape the model cannot draw', async () => {
+		const result = await createImage({ prompt: 'a red bicycle', model: 'openai/gpt-image-2.5-flare', aspect_ratio: '16:9' });
 
 		expect(result.isError).toBe(true);
 		expect(generations).toHaveLength(0);

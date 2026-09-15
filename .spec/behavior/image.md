@@ -9,19 +9,32 @@ one-shot, so the caller reaches the image while the link still stands, and the
 Worker never carries the image itself.
 
 More than one model generates here, and they do not agree on words.
-`google/nano-banana-pro` calls the resolution `image_size` where the others
-call it `resolution`, and it is the only one that stores webp. So the tool
-keeps a vocabulary of its own and every model states how much of it it answers
-to — a painter, in the glossary's words — translating at the moment the request
-is made. The point of it is that a caller says `format` and `resolution`
-whichever model generates.
+`google/nano-banana-pro` calls the resolution `image_size` where the other
+nano banana models call it `resolution`. The GPT Image models call the encoding
+`jpeg` rather than `jpg`, and are asked for neither a shape nor a resolution
+but for a size in pixels. So the tool keeps a vocabulary of its own and every
+model states how much of it it answers to — a painter, in the glossary's words
+— translating at the moment the request is made. The point of it is that a
+caller says `aspect_ratio`, `format` and `resolution` whichever model generates.
+
+A GPT Image model draws at `1024x1024`, `1024x1536` or `1536x1024`, and a
+caller reaches them by naming `1:1`, `2:3` or `3:2` at `1K`. What a caller needs
+is an image of the right shape and size, and those two words already say it; a
+size in pixels would be one model's spelling reaching the caller. OpenAI
+documents other sizes, but Cloudflare's schema for these models admits those
+three alone, and the schema of the binding actually called is the one that
+bounds what can be asked for.
+
+Editing an existing image is a tool of its own rather than part of this one, so
+the reference images a GPT Image model can take are no part of this vocabulary.
 
 A call naming no model is generated with `google/nano-banana-2`. The same
 reason that picks the smallest resolution picks it: a caller who said nothing
-has not asked to pay more, and the provider's tiers put it below
-`google/nano-banana-pro`. The cheapest tier is `google/nano-banana-2-lite`, and
-it is not the default because it generates 1K alone — a default that quietly
-caps what can be asked for is a different thing from one that costs less.
+has not asked to pay more, and Google's tiers put it below
+`google/nano-banana-pro`. Google's cheapest tier is
+`google/nano-banana-2-lite`, and it is not the default because it generates 1K
+alone — a default that quietly caps what can be asked for is a different thing
+from one that costs less.
 
 A call naming no resolution is generated at the smallest one. It is the
 cheapest, and a caller who said nothing has not asked to pay more; which one
@@ -30,9 +43,10 @@ makes the same call answer the same way twice.
 
 A request the chosen model cannot honour is refused before it is sent, because
 the alternative is an image that quietly is not what was asked for: an encoding
-that fell back to the model's own, a resolution the model never had.
-`google/nano-banana-pro` is the only one that stores webp, and
-`google/nano-banana-2-lite` generates 1K alone. What the schema cannot state
+that fell back to the model's own, a shape or a resolution the model never had.
+`google/nano-banana-2` and `google/nano-banana-2-lite` do not store webp,
+`google/nano-banana-2-lite` generates 1K alone, and a GPT Image model draws
+`1:1`, `2:3` and `3:2` alone, at 1K. What the schema cannot state
 and a description can only advise, the call itself enforces, and each refusal
 names the way out so a caller can ask again rather than only be told no.
 
@@ -217,3 +231,11 @@ long the link stands as well as where it points.
 | Given | a resolution the chosen model does not generate |
 | When  | `create_image` is called                        |
 | Then  | the call fails and nothing reaches the model    |
+
+## `I-020` A shape the model cannot draw
+
+| Step  | Statement                                      |
+| ----- | ---------------------------------------------- |
+| Given | an aspect ratio the chosen model does not draw |
+| When  | `create_image` is called                       |
+| Then  | the call fails and nothing reaches the model   |

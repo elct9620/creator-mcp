@@ -17,15 +17,16 @@ pays for, to record something that was never theirs to know.
 ## painter
 
 One model's account of how much of a tool's vocabulary it answers to, and what
-it calls each part of it: which encodings it can store, which resolutions it
-can produce, and what it calls the resolution it is asked for.
+it calls each part of it: which encodings it can store, which shapes it can
+draw, which resolutions it can produce, and what it calls each of them.
 
 A painter is the same kind of account a speaker gives, for a model that paints
 rather than speaks, and it is what lets a single flat schema stay honest across
 models that disagree: `google/nano-banana-pro` asks for `image_size` and can
-store webp, `google/nano-banana-2` asks for `resolution` and cannot. It is not
-a style, and not a model — a model is what is named in a call, a painter is
-what this application knows about that model.
+store webp, `google/nano-banana-2` asks for `resolution` and cannot, and a GPT
+Image model asks for a size in pixels where the others ask for a shape. It is
+not a style, and not a model — a model is what is named in a call, a painter
+is what this application knows about that model.
 
 ## speaker
 
@@ -52,9 +53,18 @@ model translates.
 ## format
 
 The encoding a generated file is stored in, said in the plainest name for it —
-`mp3`, `opus`, `wav`.
+`mp3`, `opus`, `wav`, `jpg`, `png`.
 
-Turned down is not a spelling but a value space: ElevenLabs folds a sample
-rate and a bitrate into the same string, `mp3_44100_128`. A caller names the
-encoding and nothing else; what a sample rate should be is the speaker's
-answer, not theirs.
+Turned down is first a value space: ElevenLabs folds a sample rate and a
+bitrate into the same string, `mp3_44100_128`. A caller names the encoding and
+nothing else; what a sample rate should be is the speaker's answer, not theirs.
+Turned down as well is `jpeg`, the spelling OpenAI's models take: a caller says
+`jpg` whichever model stores it.
+
+## aspect ratio
+
+The shape of an image, said as its width to its height — `1:1`, `3:2`.
+
+Turned down is `size`, a width and a height in pixels, which is how a GPT Image
+model is asked. A caller names the shape and the resolution; which pixels those
+come to is the painter's answer, not theirs.
