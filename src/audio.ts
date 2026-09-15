@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { named } from './named';
 import { linkFrom, storedEncodingOf } from './stored';
 
 /**
@@ -79,14 +80,6 @@ const SPEAKERS: Record<Model, Speaker> = {
 		request: ({ text, voice, format }) => ({ text, voice_id: voice, output_format: format }),
 	},
 };
-
-/**
- * A key a speaker left unnamed is one that model was never asked for, so it is
- * dropped rather than sent as null. What each provider does with a parameter it
- * documents as required but defaulted is its own business; this sends only what
- * the caller actually asked.
- */
-const named = (inputs: Record<string, unknown>) => Object.fromEntries(Object.entries(inputs).filter(([, value]) => value !== undefined));
 
 const inputSchema = z.object({
 	text: z.string().describe('What should be spoken.'),

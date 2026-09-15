@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import { named } from './named';
 import { linkFrom, storedEncodingOf } from './stored';
 
 /**
@@ -42,78 +43,56 @@ const MIME_TYPES: Record<Format, string> = {
 	webp: 'image/webp',
 };
 
-/** A request on its way to one model: the caller's words, not yet translated. */
+/**
+ * A request on its way to one model: the caller's words, part-way translated.
+ * The shape and the format are already in the model's own names for them,
+ * because only the painter knows those names.
+ */
 type Drawn = {
 	prompt: string;
-	aspect_ratio?: AspectRatio;
-	format?: Format;
+	aspect_ratio?: string;
+	format?: string;
 	resolution: Resolution;
 };
 
 /**
- * The part of a request every model names alike, and the keys a caller left
- * unnamed are dropped rather than sent empty: a model was never asked for what
- * nobody said.
- */
-const agreed = ({ prompt, aspect_ratio, format }: Drawn) => ({
-	prompt,
-	...(aspect_ratio && { aspect_ratio }),
-	...(format && { output_format: format }),
-});
-
-/**
- * What one model can be asked for, and what it calls each thing. The models
- * agree on everything but the name of the resolution and on how much they can
- * do, so the tool keeps one vocabulary and every painter states how much of it
- * it answers to.
+ * What one model can be asked for, and what it calls each thing. Models name
+ * the same idea differently and cannot always do it at all, so the tool keeps
+ * one vocabulary and every painter states how much of it it answers to.
  */
 type Painter = {
-	/** Which of this tool's formats it can store. */
-	formats: readonly Format[];
+	/** Which of this tool's formats it can store, and what it calls each. */
+	formats: Partial<Record<Format, string>>;
+	/** Which of this tool's aspect ratios it can draw, and what it calls each. */
+	shapes: Partial<Record<AspectRatio, string>>;
 	/** Which of this tool's resolutions it can generate. */
 	resolutions: readonly Resolution[];
 	/** The request in the model's own vocabulary. */
 	request: (drawn: Drawn) => Record<string, unknown>;
 };
 
+/** Every one of these words, called by the model what this tool calls it. */
+const alike = <Word extends string>(words: readonly Word[]) => Object.fromEntries(words.map((word) => [word, word])) as Record<Word, Word>;
+
 const PAINTERS: Record<Model, Painter> = {
 	'google/nano-banana-pro': {
-		formats: ['jpg', 'png', 'webp'],
+		formats: alike(['jpg', 'png', 'webp']),
+		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K', '2K', '4K'],
-		request: (drawn) => ({ ...agreed(drawn), image_size: drawn.resolution }),
+		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, image_size: resolution }),
 	},
 	'google/nano-banana-2': {
-		formats: ['jpg', 'png'],
+		formats: alike(['jpg', 'png']),
+		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K', '2K', '4K'],
-		request: (drawn) => ({ ...agreed(drawn), resolution: drawn.resolution }),
+		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
 	},
 	'google/nano-banana-2-lite': {
-		formats: ['jpg', 'png'],
+		formats: alike(['jpg', 'png']),
+		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K'],
-		request: (drawn) => ({ ...agreed(drawn), resolution: drawn.resolution }),
+		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
 	},
-};
-
-/**
- * A request the chosen model cannot honour is refused before it is sent,
- * because the alternative is an image that quietly is not what was asked for:
- * an encoding that fell back to the model's own, a resolution it never had.
- * Each refusal names the way out, so a caller can ask again rather than only
- * be told no.
- *
- * It is thrown from the call rather than declared in the schema, because the
- * constraint is per model and a tool's `inputSchema` is one JSON Schema object
- * with nowhere to put it. Thrown, it comes back as a tool error carrying the
- * sentence, which is the form that reaches the model that called.
- */
-const refuseWhatItCannotDo = (model: Model, { format, resolution }: Drawn) => {
-	const painter = PAINTERS[model];
-
-	if (format !== undefined && !painter.formats.includes(format))
-		throw new Error(`${model} cannot store ${format}. It stores ${painter.formats.join(', ')}.`);
-
-	if (!painter.resolutions.includes(resolution))
-		throw new Error(`${model} cannot generate ${resolution}. It generates ${painter.resolutions.join(', ')}.`);
 };
 
 const inputSchema = z.object({
@@ -138,6 +117,31 @@ const outputSchema = z.object({
 	mime_type: z.string().optional().describe('What the stored image is encoded as, when it can be known.'),
 });
 
+/** What a caller said, in this tool's words. */
+type Asked = Omit<z.infer<typeof inputSchema>, 'model'>;
+
+/**
+ * A request the chosen model cannot honour is refused before it is sent,
+ * because the alternative is an image that quietly is not what was asked for:
+ * an encoding that fell back to the model's own, a resolution it never had.
+ * Each refusal names the way out, so a caller can ask again rather than only
+ * be told no.
+ *
+ * It is thrown from the call rather than declared in the schema, because the
+ * constraint is per model and a tool's `inputSchema` is one JSON Schema object
+ * with nowhere to put it. Thrown, it comes back as a tool error carrying the
+ * sentence, which is the form that reaches the model that called.
+ */
+const refuseWhatItCannotDo = (model: Model, { format, resolution }: Asked) => {
+	const painter = PAINTERS[model];
+
+	if (format !== undefined && painter.formats[format] === undefined)
+		throw new Error(`${model} cannot store ${format}. It stores ${Object.keys(painter.formats).join(', ')}.`);
+
+	if (!painter.resolutions.includes(resolution))
+		throw new Error(`${model} cannot generate ${resolution}. It generates ${painter.resolutions.join(', ')}.`);
+};
+
 export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptions) =>
 	server.registerTool(
 		'create_image',
@@ -147,13 +151,19 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 			inputSchema,
 			outputSchema,
 		},
-		async ({ model, ...drawn }) => {
-			refuseWhatItCannotDo(model, drawn);
+		async ({ model, ...asked }) => {
+			refuseWhatItCannotDo(model, asked);
 
-			const answer = await ai.run(model, PAINTERS[model].request(drawn), options);
+			const painter = PAINTERS[model];
+			const drawn = {
+				...asked,
+				aspect_ratio: asked.aspect_ratio && painter.shapes[asked.aspect_ratio],
+				format: asked.format && painter.formats[asked.format],
+			};
+			const answer = await ai.run(model, named(painter.request(drawn)), options);
 			const link = linkFrom(answer, 'image');
-			const asked = drawn.format ? MIME_TYPES[drawn.format] : undefined;
-			const mimeType = (await storedEncodingOf(link)) ?? asked;
+			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
+			const mimeType = (await storedEncodingOf(link)) ?? fallback;
 
 			return {
 				content: [
@@ -161,7 +171,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 						type: 'resource_link',
 						uri: link,
 						name: 'generated-image',
-						title: drawn.prompt,
+						title: asked.prompt,
 						mimeType,
 					},
 					{
