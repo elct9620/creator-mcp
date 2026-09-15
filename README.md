@@ -14,17 +14,20 @@ because a different reader needs each one.
 
 Generate an image from a prompt.
 
-| Argument       | Default                | Accepts                                                                       |
-| -------------- | ---------------------- | ----------------------------------------------------------------------------- |
-| `prompt`       | —                      | What the image should show. Required.                                         |
-| `model`        | `google/nano-banana-2` | `google/nano-banana-pro`, `google/nano-banana-2`, `google/nano-banana-2-lite` |
-| `aspect_ratio` | the model's own        | `1:1`, `3:2`, `2:3`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`       |
-| `format`       | the model's own        | `jpg`, `png`, `webp`; only `google/nano-banana-pro` stores `webp`             |
-| `resolution`   | `1K`                   | `1K`, `2K`, `4K`; `google/nano-banana-2-lite` generates `1K` alone            |
+| Argument       | Default                      | Accepts                                                                                                                                      |
+| -------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prompt`       | —                            | What the image should show. Required.                                                                                                        |
+| `model`        | `google/nano-banana-2`       | `google/nano-banana-pro`, `google/nano-banana-2`, `google/nano-banana-2-lite`, `openai/gpt-image-2.5-flare`, `openai/gpt-image-2.5-sunburst` |
+| `aspect_ratio` | the model's own              | `1:1`, `3:2`, `2:3`, `3:4`, `4:3`, `4:5`, `5:4`, `9:16`, `16:9`, `21:9`; the GPT Image models draw `1:1`, `2:3` and `3:2` alone              |
+| `format`       | the model's own              | `jpg`, `png`, `webp`; `google/nano-banana-2` and `google/nano-banana-2-lite` do not store `webp`                                             |
+| `resolution`   | `1K`                         | `1K`, `2K`, `4K`; `google/nano-banana-2-lite` and the GPT Image models generate `1K` alone                                                   |
+| `quality`      | `low`, where it can be named | `low`, `medium`, `high`, `xhigh`, `max`, `auto`; only the GPT Image models take one                                                          |
+| `background`   | the model's own              | `transparent`, `opaque`; only the GPT Image models leave it transparent, and never as `jpg`                                                  |
 
-The provider's tiers run `google/nano-banana-pro`, `google/nano-banana-2`,
-`google/nano-banana-2-lite` from dearest to cheapest; what each costs on an
-account is on the Cloudflare dashboard.
+Google's tiers run `google/nano-banana-pro`, `google/nano-banana-2`,
+`google/nano-banana-2-lite` from dearest to cheapest. Of the GPT Image models,
+`openai/gpt-image-2.5-flare` is the faster and `openai/gpt-image-2.5-sunburst`
+the more capable. What each costs on an account is on the Cloudflare dashboard.
 
 ### `create_audio`
 
