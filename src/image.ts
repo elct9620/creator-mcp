@@ -29,6 +29,7 @@ const DEFAULT_MODEL = 'google/nano-banana-2';
 const ASPECT_RATIOS = ['1:1', '3:2', '2:3', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'] as const;
 const FORMATS = ['jpg', 'png', 'webp'] as const;
 const RESOLUTIONS = ['1K', '2K', '4K'] as const;
+const QUALITIES = ['low', 'medium', 'high', 'xhigh', 'max', 'auto'] as const;
 
 /**
  * The smallest is the default because it is the cheapest, and a caller who
@@ -38,10 +39,19 @@ const RESOLUTIONS = ['1K', '2K', '4K'] as const;
  */
 const DEFAULT_RESOLUTION = '1K';
 
+/**
+ * The same reason as the resolution's: what an image costs follows the tokens
+ * it takes, and a higher quality takes more. Left to `auto`, the model decides
+ * from the prompt, so naming one is also what makes the same call answer the
+ * same way twice. It applies only to a model that can be asked for a quality.
+ */
+const DEFAULT_QUALITY = 'low';
+
 type Model = (typeof MODELS)[number];
 type AspectRatio = (typeof ASPECT_RATIOS)[number];
 type Format = (typeof FORMATS)[number];
 type Resolution = (typeof RESOLUTIONS)[number];
+type Quality = (typeof QUALITIES)[number];
 
 const MIME_TYPES: Record<Format, string> = {
 	jpg: 'image/jpeg',
@@ -59,6 +69,7 @@ type Drawn = {
 	aspect_ratio?: string;
 	format?: string;
 	resolution: Resolution;
+	quality?: Quality;
 };
 
 /**
@@ -73,6 +84,8 @@ type Painter = {
 	shapes: Partial<Record<AspectRatio, string>>;
 	/** Which of this tool's resolutions it can generate. */
 	resolutions: readonly Resolution[];
+	/** Whether it can be asked how much to put into an image. */
+	quality: boolean;
 	/** The request in the model's own vocabulary. */
 	request: (drawn: Drawn) => Record<string, unknown>;
 };
@@ -89,7 +102,8 @@ const GPT_IMAGE: Painter = {
 	formats: { jpg: 'jpeg', png: 'png', webp: 'webp' },
 	shapes: { '1:1': '1024x1024', '2:3': '1024x1536', '3:2': '1536x1024' },
 	resolutions: ['1K'],
-	request: ({ prompt, aspect_ratio, format }) => ({ prompt, size: aspect_ratio, output_format: format }),
+	quality: true,
+	request: ({ prompt, aspect_ratio, format, quality }) => ({ prompt, size: aspect_ratio, output_format: format, quality }),
 };
 
 const PAINTERS: Record<Model, Painter> = {
@@ -97,18 +111,21 @@ const PAINTERS: Record<Model, Painter> = {
 		formats: alike(['jpg', 'png', 'webp']),
 		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K', '2K', '4K'],
+		quality: false,
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, image_size: resolution }),
 	},
 	'google/nano-banana-2': {
 		formats: alike(['jpg', 'png']),
 		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K', '2K', '4K'],
+		quality: false,
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
 	},
 	'google/nano-banana-2-lite': {
 		formats: alike(['jpg', 'png']),
 		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K'],
+		quality: false,
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
 	},
 	'openai/gpt-image-2.5-flare': GPT_IMAGE,
@@ -134,6 +151,10 @@ const inputSchema = z.object({
 		.enum(RESOLUTIONS)
 		.default(DEFAULT_RESOLUTION)
 		.describe('How large the generated image is. google/nano-banana-2-lite and the GPT Image models generate 1K alone.'),
+	quality: z
+		.enum(QUALITIES)
+		.optional()
+		.describe('How much goes into the image. Only the GPT Image models can be asked, and they generate at low when none is named.'),
 });
 
 const outputSchema = z.object({
@@ -148,15 +169,15 @@ type Asked = Omit<z.infer<typeof inputSchema>, 'model'>;
  * A request the chosen model cannot honour is refused before it is sent,
  * because the alternative is an image that quietly is not what was asked for:
  * an encoding that fell back to the model's own, a shape or a resolution it
- * never had. Each refusal names the way out, so a caller can ask again rather
- * than only be told no.
+ * never had, a quality it ignored. Each refusal names the way out, so a caller
+ * can ask again rather than only be told no.
  *
  * It is thrown from the call rather than declared in the schema, because the
  * constraint is per model and a tool's `inputSchema` is one JSON Schema object
  * with nowhere to put it. Thrown, it comes back as a tool error carrying the
  * sentence, which is the form that reaches the model that called.
  */
-const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution }: Asked) => {
+const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution, quality }: Asked) => {
 	const painter = PAINTERS[model];
 
 	if (format !== undefined && painter.formats[format] === undefined)
@@ -167,6 +188,9 @@ const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution }
 
 	if (!painter.resolutions.includes(resolution))
 		throw new Error(`${model} cannot generate ${resolution}. It generates ${painter.resolutions.join(', ')}.`);
+
+	if (quality !== undefined && !painter.quality)
+		throw new Error(`${model} cannot be asked for a quality. Drop \`quality\`, or generate with a GPT Image model.`);
 };
 
 export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptions) =>
@@ -186,6 +210,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 				...asked,
 				aspect_ratio: asked.aspect_ratio && painter.shapes[asked.aspect_ratio],
 				format: asked.format && painter.formats[asked.format],
+				quality: painter.quality ? (asked.quality ?? DEFAULT_QUALITY) : undefined,
 			};
 			const answer = await ai.run(model, named(painter.request(drawn)), options);
 			const link = linkFrom(answer, 'image');

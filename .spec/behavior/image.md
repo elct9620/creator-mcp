@@ -41,14 +41,23 @@ cheapest, and a caller who said nothing has not asked to pay more; which one
 the model would otherwise reach for is undocumented, so naming one is also what
 makes the same call answer the same way twice.
 
+A GPT Image model can also be asked how much to put into an image, from `low`
+to `max`, or `auto` to leave it to the model. A call to one naming no quality
+is generated at `low`, for the reason that picks the smallest resolution: what
+an image costs follows the tokens it takes, a higher quality takes more, and a
+caller who said nothing has not asked to pay more. Left to `auto` the model
+decides from the prompt, so naming one is also what makes the same call answer
+the same way twice.
+
 A request the chosen model cannot honour is refused before it is sent, because
 the alternative is an image that quietly is not what was asked for: an encoding
-that fell back to the model's own, a shape or a resolution the model never had.
-`google/nano-banana-2` and `google/nano-banana-2-lite` do not store webp,
-`google/nano-banana-2-lite` generates 1K alone, and a GPT Image model draws
-`1:1`, `2:3` and `3:2` alone, at 1K. What the schema cannot state
-and a description can only advise, the call itself enforces, and each refusal
-names the way out so a caller can ask again rather than only be told no.
+that fell back to the model's own, a shape or a resolution the model never had,
+a quality it ignored. `google/nano-banana-2` and `google/nano-banana-2-lite` do
+not store webp, `google/nano-banana-2-lite` generates 1K alone, a GPT Image
+model draws `1:1`, `2:3` and `3:2` alone, at 1K, and a nano banana model cannot
+be asked for a quality. What the schema cannot state and a description can only
+advise, the call itself enforces, and each refusal names the way out so a
+caller can ask again rather than only be told no.
 
 The format a caller asks for is not a promise about the stored image —
 one asked for as PNG has come back stored as JPEG — so what the reply says
@@ -106,11 +115,11 @@ long the link stands as well as where it points.
 
 ## `I-004` What the caller asks of the generation
 
-| Step  | Statement                                              |
-| ----- | ------------------------------------------------------ |
-| Given | a model, and an aspect ratio, a format or a resolution |
-| When  | `create_image` is called with them                     |
-| Then  | that model receives each one under the name it uses    |
+| Step  | Statement                                                         |
+| ----- | ----------------------------------------------------------------- |
+| Given | a model, and an aspect ratio, a format, a resolution or a quality |
+| When  | `create_image` is called with them                                |
+| Then  | that model receives each one under the name it uses               |
 
 ## `I-005` The image is linked rather than carried
 
@@ -239,3 +248,19 @@ long the link stands as well as where it points.
 | Given | an aspect ratio the chosen model does not draw |
 | When  | `create_image` is called                       |
 | Then  | the call fails and nothing reaches the model   |
+
+## `I-021` A quality the model cannot be asked for
+
+| Step  | Statement                                                  |
+| ----- | ---------------------------------------------------------- |
+| Given | a quality, and a chosen model that cannot be asked for one |
+| When  | `create_image` is called                                   |
+| Then  | the call fails and nothing reaches the model               |
+
+## `I-022` The quality a caller names nothing for
+
+| Step  | Statement                                     |
+| ----- | --------------------------------------------- |
+| Given | a call to a GPT Image model naming no quality |
+| When  | `create_image` generates                      |
+| Then  | the image is generated at `low`               |

@@ -123,8 +123,16 @@ describe('image generation', () => {
 			{ aspect_ratio: '16:9', output_format: 'png', resolution: '2K' },
 		],
 		['google/nano-banana-2-lite', { format: 'jpg', resolution: '1K' }, { output_format: 'jpg', resolution: '1K' }],
-		['openai/gpt-image-2.5-flare', { aspect_ratio: '3:2', format: 'jpg', resolution: '1K' }, { size: '1536x1024', output_format: 'jpeg' }],
-		['openai/gpt-image-2.5-sunburst', { aspect_ratio: '2:3', format: 'webp' }, { size: '1024x1536', output_format: 'webp' }],
+		[
+			'openai/gpt-image-2.5-flare',
+			{ aspect_ratio: '3:2', format: 'jpg', resolution: '1K', quality: 'high' },
+			{ size: '1536x1024', output_format: 'jpeg', quality: 'high' },
+		],
+		[
+			'openai/gpt-image-2.5-sunburst',
+			{ aspect_ratio: '2:3', format: 'webp', quality: 'max' },
+			{ size: '1024x1536', output_format: 'webp', quality: 'max' },
+		],
 	])('should ask %s in its own words when the caller gives generation options', async (model, asked, expected) => {
 		await createImage({ prompt: 'a red bicycle', model, ...asked });
 
@@ -287,5 +295,20 @@ describe('image generation', () => {
 
 		expect(result.isError).toBe(true);
 		expect(generations).toHaveLength(0);
+	});
+
+	// @behavior I-021
+	it('should refuse a quality the model cannot be asked for', async () => {
+		const result = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-2', quality: 'high' });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
+	});
+
+	// @behavior I-022
+	it('should generate at low quality when a GPT Image model is named no quality', async () => {
+		await createImage({ prompt: 'a red bicycle', model: 'openai/gpt-image-2.5-flare' });
+
+		expect(generations[0].inputs).toMatchObject({ quality: 'low' });
 	});
 });
