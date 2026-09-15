@@ -153,8 +153,9 @@ describe('image generation', () => {
 		expect(linkIn(content)).toMatchObject({ mimeType: 'image/jpeg' });
 	});
 
-	// webp is the encoding only `google/nano-banana-pro` stores, which is why
-	// these two name it: the promise is about the fallback, not about the model.
+	// webp is an encoding the default model does not store, which is why these
+	// two name a model that does: the promise is about the fallback, not about
+	// the model.
 	// @behavior I-007
 	it('should state the format the caller asked for when the store will not say', async () => {
 		network.resetHandlers(storeRefusing());

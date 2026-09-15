@@ -49,12 +49,13 @@ caller who said nothing has not asked to pay more. Left to `auto` the model
 decides from the prompt, so naming one is also what makes the same call answer
 the same way twice.
 
-A GPT Image model can also be asked to leave the background transparent, or
-to paint it opaque; naming neither leaves it to the model. A nano banana model
-cannot leave one transparent, so asking it for an opaque background asks for
-what it already paints: that is let through, and nothing about the background
-is sent. Transparency needs an encoding that can hold it, and jpg cannot, so a
-transparent background stored as jpg is refused whichever model is named.
+The background a GPT Image model paints is the caller's to choose as well: left
+transparent or painted opaque, or left to the model when neither is named. A
+nano banana model cannot leave one transparent, so asking it for an opaque
+background asks for what it already paints: that is let through, and nothing
+about the background is sent. Transparency needs an encoding that can hold it,
+and jpg cannot, so a transparent background stored as jpg is refused whichever
+model is named.
 
 A request the chosen model cannot honour is refused before it is sent, because
 the alternative is an image that quietly is not what was asked for: an encoding
