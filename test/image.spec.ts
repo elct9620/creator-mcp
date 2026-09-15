@@ -125,13 +125,13 @@ describe('image generation', () => {
 		['google/nano-banana-2-lite', { format: 'jpg', resolution: '1K' }, { output_format: 'jpg', resolution: '1K' }],
 		[
 			'openai/gpt-image-2.5-flare',
-			{ aspect_ratio: '3:2', format: 'jpg', resolution: '1K', quality: 'high' },
-			{ size: '1536x1024', output_format: 'jpeg', quality: 'high' },
+			{ aspect_ratio: '3:2', format: 'jpg', resolution: '1K', quality: 'high', background: 'opaque' },
+			{ size: '1536x1024', output_format: 'jpeg', quality: 'high', background: 'opaque' },
 		],
 		[
 			'openai/gpt-image-2.5-sunburst',
-			{ aspect_ratio: '2:3', format: 'webp', quality: 'max' },
-			{ size: '1024x1536', output_format: 'webp', quality: 'max' },
+			{ aspect_ratio: '2:3', format: 'webp', quality: 'max', background: 'transparent' },
+			{ size: '1024x1536', output_format: 'webp', quality: 'max', background: 'transparent' },
 		],
 	])('should ask %s in its own words when the caller gives generation options', async (model, asked, expected) => {
 		await createImage({ prompt: 'a red bicycle', model, ...asked });
@@ -310,5 +310,34 @@ describe('image generation', () => {
 		await createImage({ prompt: 'a red bicycle', model: 'openai/gpt-image-2.5-flare' });
 
 		expect(generations[0].inputs).toMatchObject({ quality: 'low' });
+	});
+
+	// @behavior I-023
+	it('should refuse a transparent background the model cannot leave', async () => {
+		const result = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-2', background: 'transparent' });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
+	});
+
+	// @behavior I-024
+	it('should ask for no background when a model that paints only opaque ones is asked for one', async () => {
+		const result = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-2', background: 'opaque' });
+
+		expect(result.isError).toBeFalsy();
+		expect(generations[0].inputs).not.toHaveProperty('background');
+	});
+
+	// @behavior I-025
+	it('should refuse a transparent background stored as jpg', async () => {
+		const result = await createImage({
+			prompt: 'a red bicycle',
+			model: 'openai/gpt-image-2.5-flare',
+			format: 'jpg',
+			background: 'transparent',
+		});
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
 	});
 });

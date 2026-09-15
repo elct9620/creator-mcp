@@ -49,15 +49,23 @@ caller who said nothing has not asked to pay more. Left to `auto` the model
 decides from the prompt, so naming one is also what makes the same call answer
 the same way twice.
 
+A GPT Image model can also be asked to leave the background transparent, or
+to paint it opaque; naming neither leaves it to the model. A nano banana model
+cannot leave one transparent, so asking it for an opaque background asks for
+what it already paints: that is let through, and nothing about the background
+is sent. Transparency needs an encoding that can hold it, and jpg cannot, so a
+transparent background stored as jpg is refused whichever model is named.
+
 A request the chosen model cannot honour is refused before it is sent, because
 the alternative is an image that quietly is not what was asked for: an encoding
 that fell back to the model's own, a shape or a resolution the model never had,
-a quality it ignored. `google/nano-banana-2` and `google/nano-banana-2-lite` do
-not store webp, `google/nano-banana-2-lite` generates 1K alone, a GPT Image
-model draws `1:1`, `2:3` and `3:2` alone, at 1K, and a nano banana model cannot
-be asked for a quality. What the schema cannot state and a description can only
-advise, the call itself enforces, and each refusal names the way out so a
-caller can ask again rather than only be told no.
+a quality it ignored, a background painted over. `google/nano-banana-2` and
+`google/nano-banana-2-lite` do not store webp, `google/nano-banana-2-lite`
+generates 1K alone, a GPT Image model draws `1:1`, `2:3` and `3:2` alone, at
+1K, and a nano banana model cannot be asked for a quality or a transparent
+background. What the schema cannot state and a description can only advise,
+the call itself enforces, and each refusal names the way out so a caller can
+ask again rather than only be told no.
 
 The format a caller asks for is not a promise about the stored image —
 one asked for as PNG has come back stored as JPEG — so what the reply says
@@ -115,11 +123,11 @@ long the link stands as well as where it points.
 
 ## `I-004` What the caller asks of the generation
 
-| Step  | Statement                                                         |
-| ----- | ----------------------------------------------------------------- |
-| Given | a model, and an aspect ratio, a format, a resolution or a quality |
-| When  | `create_image` is called with them                                |
-| Then  | that model receives each one under the name it uses               |
+| Step  | Statement                                                                       |
+| ----- | ------------------------------------------------------------------------------- |
+| Given | a model, and an aspect ratio, a format, a resolution, a quality or a background |
+| When  | `create_image` is called with them                                              |
+| Then  | that model receives each one under the name it uses                             |
 
 ## `I-005` The image is linked rather than carried
 
@@ -264,3 +272,27 @@ long the link stands as well as where it points.
 | Given | a call to a GPT Image model naming no quality |
 | When  | `create_image` generates                      |
 | Then  | the image is generated at `low`               |
+
+## `I-023` A background the model cannot leave transparent
+
+| Step  | Statement                                                          |
+| ----- | ------------------------------------------------------------------ |
+| Given | a transparent background, and a chosen model that cannot leave one |
+| When  | `create_image` is called                                           |
+| Then  | the call fails and nothing reaches the model                       |
+
+## `I-024` An opaque background from a model that paints nothing else
+
+| Step  | Statement                                                                  |
+| ----- | -------------------------------------------------------------------------- |
+| Given | an opaque background, and a chosen model that cannot leave one transparent |
+| When  | `create_image` generates                                                   |
+| Then  | the model is asked for no background                                       |
+
+## `I-025` Transparency in an encoding that cannot hold it
+
+| Step  | Statement                                    |
+| ----- | -------------------------------------------- |
+| Given | a transparent background stored as jpg       |
+| When  | `create_image` is called                     |
+| Then  | the call fails and nothing reaches the model |

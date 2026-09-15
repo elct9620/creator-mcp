@@ -30,6 +30,7 @@ const ASPECT_RATIOS = ['1:1', '3:2', '2:3', '3:4', '4:3', '4:5', '5:4', '9:16', 
 const FORMATS = ['jpg', 'png', 'webp'] as const;
 const RESOLUTIONS = ['1K', '2K', '4K'] as const;
 const QUALITIES = ['low', 'medium', 'high', 'xhigh', 'max', 'auto'] as const;
+const BACKGROUNDS = ['transparent', 'opaque'] as const;
 
 /**
  * The smallest is the default because it is the cheapest, and a caller who
@@ -52,6 +53,7 @@ type AspectRatio = (typeof ASPECT_RATIOS)[number];
 type Format = (typeof FORMATS)[number];
 type Resolution = (typeof RESOLUTIONS)[number];
 type Quality = (typeof QUALITIES)[number];
+type Background = (typeof BACKGROUNDS)[number];
 
 const MIME_TYPES: Record<Format, string> = {
 	jpg: 'image/jpeg',
@@ -70,6 +72,7 @@ type Drawn = {
 	format?: string;
 	resolution: Resolution;
 	quality?: Quality;
+	background?: Background;
 };
 
 /**
@@ -86,6 +89,8 @@ type Painter = {
 	resolutions: readonly Resolution[];
 	/** Whether it can be asked how much to put into an image. */
 	quality: boolean;
+	/** Whether it can leave the background transparent. One that cannot paints it opaque. */
+	transparent: boolean;
 	/** The request in the model's own vocabulary. */
 	request: (drawn: Drawn) => Record<string, unknown>;
 };
@@ -103,7 +108,14 @@ const GPT_IMAGE: Painter = {
 	shapes: { '1:1': '1024x1024', '2:3': '1024x1536', '3:2': '1536x1024' },
 	resolutions: ['1K'],
 	quality: true,
-	request: ({ prompt, aspect_ratio, format, quality }) => ({ prompt, size: aspect_ratio, output_format: format, quality }),
+	transparent: true,
+	request: ({ prompt, aspect_ratio, format, quality, background }) => ({
+		prompt,
+		size: aspect_ratio,
+		output_format: format,
+		quality,
+		background,
+	}),
 };
 
 const PAINTERS: Record<Model, Painter> = {
@@ -112,6 +124,7 @@ const PAINTERS: Record<Model, Painter> = {
 		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K', '2K', '4K'],
 		quality: false,
+		transparent: false,
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, image_size: resolution }),
 	},
 	'google/nano-banana-2': {
@@ -119,6 +132,7 @@ const PAINTERS: Record<Model, Painter> = {
 		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K', '2K', '4K'],
 		quality: false,
+		transparent: false,
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
 	},
 	'google/nano-banana-2-lite': {
@@ -126,6 +140,7 @@ const PAINTERS: Record<Model, Painter> = {
 		shapes: alike(ASPECT_RATIOS),
 		resolutions: ['1K'],
 		quality: false,
+		transparent: false,
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
 	},
 	'openai/gpt-image-2.5-flare': GPT_IMAGE,
@@ -155,6 +170,12 @@ const inputSchema = z.object({
 		.enum(QUALITIES)
 		.optional()
 		.describe('How much goes into the image. Only the GPT Image models can be asked, and they generate at low when none is named.'),
+	background: z
+		.enum(BACKGROUNDS)
+		.optional()
+		.describe(
+			'Whether the background is left transparent or painted opaque. Only the GPT Image models can leave it transparent, and not in jpg.',
+		),
 });
 
 const outputSchema = z.object({
@@ -177,7 +198,7 @@ type Asked = Omit<z.infer<typeof inputSchema>, 'model'>;
  * with nowhere to put it. Thrown, it comes back as a tool error carrying the
  * sentence, which is the form that reaches the model that called.
  */
-const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution, quality }: Asked) => {
+const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution, quality, background }: Asked) => {
 	const painter = PAINTERS[model];
 
 	if (format !== undefined && painter.formats[format] === undefined)
@@ -191,6 +212,15 @@ const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution, 
 
 	if (quality !== undefined && !painter.quality)
 		throw new Error(`${model} cannot be asked for a quality. Drop \`quality\`, or generate with a GPT Image model.`);
+
+	// Asking a model that always paints the background opaque for that same
+	// background is a request it already meets, so it is let through and dropped
+	// in translation rather than refused.
+	if (background === 'transparent' && !painter.transparent)
+		throw new Error(`${model} cannot leave the background transparent. Drop \`background\`, or generate with a GPT Image model.`);
+
+	if (background === 'transparent' && format === 'jpg')
+		throw new Error('jpg cannot hold a transparent background. Store it as png or webp.');
 };
 
 export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptions) =>
