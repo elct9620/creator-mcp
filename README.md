@@ -86,11 +86,17 @@ uploaded over the secret on every deploy. Set each with
 
 ## Access
 
-Cloudflare Access is attached to the Worker rather than to a hostname, so it
-covers every route, preview and Custom Domain, and `workers.dev` is closed. The
-`/mcp` endpoint answers 401 to any request Access did not match, which is what
-makes Managed OAuth safe to enable in front of it. Locally, the `access.dev`
-block in `wrangler.jsonc` stands in for one.
+Cloudflare Access is attached to the Worker rather than to a hostname, so every
+way in is covered by the one application. The `/mcp` endpoint answers 401 to any
+request Access did not match, which is what makes Managed OAuth safe to enable
+in front of it. Locally, the `access.dev` block in `wrangler.jsonc` stands in
+for one.
+
+| Address               | Guarded | Why it is open                                                                                          |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| Custom Domain, routes | yes     | Where callers reach the server                                                                          |
+| `workers.dev`         | yes     | What `wrangler dev` identifies the Access application by, so a local session can reach a remote binding |
+| Preview URLs          | yes     | Created per version by the platform                                                                     |
 
 ## Backup
 

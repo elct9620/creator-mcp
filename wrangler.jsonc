@@ -28,15 +28,19 @@
 	/**
 	 * Cloudflare Access is attached to this Worker rather than to a hostname,
 	 * so it already covers every route, Custom Domain, preview and the
-	 * workers.dev subdomain. That subdomain stays closed because nothing needs
-	 * a second address, not because it would be unguarded.
+	 * workers.dev subdomain. That subdomain stays open because `wrangler dev`
+	 * identifies the Access application by it: closed, it answers Error 1042
+	 * before Access can, `cloudflared` finds no application at that address,
+	 * and every remote binding a local session reaches for comes back 401 with
+	 * nothing said about why. Nothing else needs the second address, and Access
+	 * covers it either way.
 	 *
 	 * A worker-level policy does not carry WebSocket: an upgrade request is
 	 * answered 403. The MCP endpoint speaks Streamable HTTP, so none is asked
 	 * for here.
 	 * https://developers.cloudflare.com/workers/configuration/cloudflare-access/
 	 */
-	"workers_dev": false,
+	"workers_dev": true,
 	/**
 	 * No Access stands in front of `wrangler dev`, so this stands in for one:
 	 * every local request arrives already matched, carrying this identity.
