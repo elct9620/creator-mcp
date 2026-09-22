@@ -1,24 +1,27 @@
 import { createMcpHandler, McpServer, originValidationResponse } from '@modelcontextprotocol/server';
 import { Hono } from 'hono';
 import { name, version } from '../package.json';
-import { accessGuard } from './access';
+import { accessGuard, accessOf } from './access';
 import { registerCreateAudio } from './audio';
+import { backupFor } from './backup';
 import { registerCreateImage } from './image';
 
 const gatewayFor = ({ AI_GATEWAY }: Env): AiOptions | undefined => (AI_GATEWAY ? { gateway: { id: AI_GATEWAY } } : undefined);
 
-// The tools serve with the bindings of the request they answer, and the route
-// is the only place those are in hand: what a Worker reaches from module scope
-// is its own env rather than the one a caller handed the app. Building the
-// handler here instead costs well under a microsecond and keeps nothing
-// between requests, which is what lets this Worker serve MCP without a
+// The tools serve with the bindings of the request they answer and with who
+// Access resolved it to be, and the route is the only place either is in hand:
+// what a Worker reaches from module scope is its own env rather than the one a
+// caller handed the app, and the match lands on the context the runtime passes.
+// Building the handler here instead costs well under a microsecond and keeps
+// nothing between requests, which is what lets this Worker serve MCP without a
 // Durable Object.
-const handlerFor = (env: Env) =>
+const handlerFor = (env: Env, executionCtx: unknown) =>
 	createMcpHandler(() => {
 		const server = new McpServer({ name, version });
 		const gateway = gatewayFor(env);
-		registerCreateImage(server, env.AI, gateway);
-		registerCreateAudio(server, env.AI, gateway);
+		const backup = backupFor(env, accessOf(executionCtx));
+		registerCreateImage(server, env.AI, backup, gateway);
+		registerCreateAudio(server, env.AI, backup, gateway);
 
 		return server;
 	});
@@ -38,6 +41,6 @@ app.get('/', (c) => c.text('Coming Soon'));
 app.use('/mcp', accessGuard);
 
 // @route ALL /mcp
-app.all('/mcp', (c) => originValidationResponse(c.req.raw, ALLOWED_ORIGINS) ?? handlerFor(c.env).fetch(c.req.raw));
+app.all('/mcp', (c) => originValidationResponse(c.req.raw, ALLOWED_ORIGINS) ?? handlerFor(c.env, c.executionCtx).fetch(c.req.raw));
 
 export default app;

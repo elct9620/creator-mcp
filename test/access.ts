@@ -5,6 +5,13 @@ const MATCHED = {
 	jwt_claims: { email: 'someone@example.com' },
 };
 
+// A match an identity provider gave no address with. Access still matched the
+// request, so the endpoint answers it; what needs an address does not run.
+const NAMELESS = {
+	app_aud: 'stand-in-audience',
+	jwt_claims: {},
+};
+
 const ACCESS_BLOB = 'MF-Access-Blob';
 
 /**
@@ -20,6 +27,13 @@ const ACCESS_BLOB = 'MF-Access-Blob';
  */
 export const asMatched = (request: Request) => {
 	request.headers.set(ACCESS_BLOB, JSON.stringify(MATCHED));
+
+	return request;
+};
+
+/** The same, for a caller Access matched without resolving an address. */
+export const asNameless = (request: Request) => {
+	request.headers.set(ACCESS_BLOB, JSON.stringify(NAMELESS));
 
 	return request;
 };

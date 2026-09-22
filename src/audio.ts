@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import type { Backup } from './backup';
 import { named } from './named';
 import { linkFrom, storedEncodingOf } from './stored';
 
@@ -33,6 +34,9 @@ const MIME_TYPES: Record<Format, string> = {
 	aac: 'audio/aac',
 	flac: 'audio/flac',
 };
+
+/** The same map read the other way: what a file holding this encoding is called. */
+const EXTENSIONS: Record<string, string> = Object.fromEntries(Object.entries(MIME_TYPES).map(([format, mime]) => [mime, format]));
 
 /** A request on its way to one model: the caller's words, part-way translated. */
 type Spoken = {
@@ -139,7 +143,7 @@ const refuseWhatItCannotDo = (model: Model, { text, voice, format, speed }: Aske
 		throw new Error(`${model} speaks between ${speaker.speed.min} and ${speaker.speed.max} times its own pace.`);
 };
 
-export const registerCreateAudio = (server: McpServer, ai: Ai, options?: AiOptions) =>
+export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | undefined, options?: AiOptions) =>
 	server.registerTool(
 		'create_audio',
 		{
@@ -157,6 +161,7 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, options?: AiOptio
 			const link = linkFrom(answer, 'audio');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;
+			await backup?.(link, mimeType ? EXTENSIONS[mimeType] : undefined);
 
 			return {
 				content: [

@@ -5,8 +5,9 @@ it hands back.
 
 The model stores what it generates and answers with a link to it. That link is
 presigned and stands for a day, and it is handed on exactly as given: a call is
-one-shot, so the caller reaches the image while the link still stands, and the
-Worker never carries the image itself.
+one-shot, so the caller reaches the image while the link still stands. The
+Worker carries the image itself only where a deployment asked for a backup,
+which is its own feature and changes nothing about this one's reply.
 
 More than one model generates here, and they do not agree on words.
 `google/nano-banana-pro` calls the resolution `image_size` where the other

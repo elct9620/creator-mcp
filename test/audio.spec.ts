@@ -36,12 +36,15 @@ const answering = (audio: string) => ({ state: 'Completed', result: { audio } })
 const ENDPOINT = new URL('https://creator.example.com/mcp');
 
 // A binding assigned here is what the Worker answers with, so every client
-// states the model and gateway its own test is about. Whatever the last one
-// set stays until the next one says otherwise, which is why both are named
-// every time rather than only the one under test. A deployment names a gateway
-// by setting a secret, so naming none here leaves the binding undefined.
+// states the deployment its own test is about. Whatever the last one set stays
+// until the next one says otherwise — and a `.dev.vars` on the machine running
+// this is what the first one inherits — which is why each is named every time
+// rather than only the one under test. A deployment names a gateway by setting
+// a secret, so naming none here leaves the binding undefined; backups are named
+// off, because what this feature promises is what a deployment keeping no
+// copies sees.
 const connect = async (ai: Ai, AI_GATEWAY?: string) => {
-	Object.assign(env, { AI: ai, AI_GATEWAY });
+	Object.assign(env, { AI: ai, AI_GATEWAY, BACKUP: undefined });
 
 	const client = new Client({ name: 'test-harness', version: '0.0.0' });
 	await client.connect(

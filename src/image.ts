@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import type { Backup } from './backup';
 import { named } from './named';
 import { linkFrom, storedEncodingOf } from './stored';
 
@@ -60,6 +61,9 @@ const MIME_TYPES: Record<Format, string> = {
 	png: 'image/png',
 	webp: 'image/webp',
 };
+
+/** The same map read the other way: what a file holding this encoding is called. */
+const EXTENSIONS: Record<string, string> = Object.fromEntries(Object.entries(MIME_TYPES).map(([format, mime]) => [mime, format]));
 
 /**
  * A request on its way to one model: the caller's words, part-way translated.
@@ -223,7 +227,7 @@ const refuseWhatItCannotDo = (model: Model, { aspect_ratio, format, resolution, 
 		throw new Error('jpg cannot hold a transparent background. Store it as png or webp.');
 };
 
-export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptions) =>
+export const registerCreateImage = (server: McpServer, ai: Ai, backup: Backup | undefined, options?: AiOptions) =>
 	server.registerTool(
 		'create_image',
 		{
@@ -246,6 +250,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai, options?: AiOptio
 			const link = linkFrom(answer, 'image');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;
+			await backup?.(link, mimeType ? EXTENSIONS[mimeType] : undefined);
 
 			return {
 				content: [
