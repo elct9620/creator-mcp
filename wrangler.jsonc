@@ -73,6 +73,25 @@
 		"binding": "AI",
 	},
 	/**
+	 * Where a deployment keeps what it backs up. No `bucket_name` stands here,
+	 * which is what has the first deploy create the bucket and keep every later
+	 * deploy pointed at the same one — a name written down instead would be one
+	 * more thing to create by hand before deploying, and one deployment's answer
+	 * living in the repository.
+	 *
+	 * The binding is declared here rather than added in the dashboard for the
+	 * reason a secret is not declared here: a deploy uploads this file over what
+	 * the dashboard holds. The bucket is not named for backups either —
+	 * `backup/` is one prefix inside it, so whatever else it comes to hold can
+	 * still say what it is.
+	 * https://developers.cloudflare.com/changelog/post/2025-10-24-automatic-resource-provisioning/
+	 */
+	"r2_buckets": [
+		{
+			"binding": "BUCKET",
+		},
+	],
+	/**
 	 * Smart Placement
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */

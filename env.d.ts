@@ -1,13 +1,22 @@
 /**
- * The binding this repository does not declare.
+ * The bindings this repository does not declare.
  *
- * AI_GATEWAY is the deployment's answer rather than the repository's, so it
- * arrives as a secret, and the generated types carry it only on a machine whose
- * .dev.vars happens to name one. Stating it here is what keeps every other
- * machine compiling. Stating it optional is what a deployment looks like: one
- * that names no gateway leaves the secret unset, and the binding is then absent
+ * Each is the deployment's answer rather than the repository's, so each arrives
+ * as a secret, and the generated types carry one only on a machine whose
+ * .dev.vars happens to name it. Stating them here is what keeps every other
+ * machine compiling. Stating them optional is what a deployment looks like: one
+ * that answers nothing leaves the secret unset, and the binding is then absent
  * rather than empty.
  */
 interface Env {
+	/** The AI Gateway inference is reached through. Unset leaves the account's default one to answer. */
 	AI_GATEWAY?: string;
+	/** Whether generated files are copied into the bucket. Only `yes` turns it on. */
+	BACKUP?: string;
+	/**
+	 * The time zone the date in a backup's path is read in. Unset is UTC, which
+	 * is also what the runtime itself always keeps, so nothing else moves with
+	 * this: it names the folder a file lands in and nothing more.
+	 */
+	TZ?: string;
 }

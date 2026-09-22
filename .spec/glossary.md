@@ -68,3 +68,16 @@ The shape of an image, said as its width to its height — `1:1`, `3:2`.
 Turned down is `size`, a width and a height in pixels, which is how a GPT Image
 model is asked. A caller names the shape and the resolution; which pixels those
 come to is the painter's answer, not theirs.
+
+## backup
+
+The copy of a generated file a deployment keeps for itself, at
+`backup/{user}/{date}/{name}` in its own bucket, so that what a model made
+outlives the day the model's own link stands for.
+
+Turned down is `store`, which already names where a model puts what it
+generated and what the encoding is asked of. The two hold the same bytes for
+different lengths of time, and one word for both would leave neither sentence
+readable. The bucket is not named for backups either: `backup/` is a prefix
+inside it, because a bucket whose root fills with files of no stated kind
+cannot later say what else it holds.

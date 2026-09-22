@@ -6,3 +6,11 @@
 # A deployment answers this with a secret instead, so wrangler.jsonc declares
 # nothing and env.d.ts is what types the binding.
 AI_GATEWAY=
+
+# Whether a generated file is copied into the bucket as well as linked. Only
+# `yes` turns it on; anything else, this one empty included, leaves it off.
+BACKUP=
+
+# The time zone the date in a backup's path is read in, as an IANA name such as
+# Asia/Taipei. Empty reads it in UTC.
+TZ=
