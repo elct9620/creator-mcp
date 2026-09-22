@@ -14,6 +14,12 @@
 
 - `.spec/` is where this project's vocabulary and interfaces are settled. Read it
   before changing behaviour; record a decision there rather than only in code.
+- Prose documents order their sections by what the reader needs first: what the
+  rest depends on, largest before smallest, shallow before deep, with 50 to 150
+  words of prose in a section, so it answers in one read. In `README.md` each
+  section also carries a table or a diagram. `.spec/` follows this in its
+  explanations alone: its behaviour entries are what `sumi verify` reads, and
+  their shape answers to the checker.
 - Hooks in `.claude/` format every written file, type-check the project, and run
   tests plus `sumi verify` before a turn ends. Do not run prettier by hand.
 - Trunk-based: commit to `main`. No feature branches.
