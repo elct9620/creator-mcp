@@ -25,6 +25,16 @@ generation is paid for the moment it is made and a refusal afterwards would
 charge for nothing. The rule rides in the tool's own schema, so a caller can
 read it rather than discover it.
 
+A deployment that keeps no copies takes the name all the same and does nothing
+with it. What a tool offers should not turn on a secret the caller cannot see,
+or the same client would find the same server different from one deployment to
+the next.
+
+The encoding a copy is named for is the one the reply states, read from the
+store the same way it is when no copy is kept. Taking it from the copy's own
+answer would save asking twice, at the cost of two paths deciding what a file
+is; a name and a reply that could disagree costs more than the request does.
+
 A caller has paid for the generation before any of this runs, so nothing here
 may take that away from them: a copy that cannot be made leaves the reply
 exactly as it would have been, and says so in the log with its reason rather
