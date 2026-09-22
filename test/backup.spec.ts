@@ -4,7 +4,7 @@ import { env, exports } from 'cloudflare:workers';
 import { http, HttpResponse } from 'msw';
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { asMatched, asNameless } from './access';
-import { aiAnswering } from './workers-ai';
+import { aiAnswering, type Generation } from './workers-ai';
 
 const IMAGE_PATH = 'https://ai-gateway-outputs.example.r2.cloudflarestorage.com/provider-outputs/stand-in/stand-in';
 const IMAGE = `${IMAGE_PATH}?X-Amz-Expires=86400&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=stand-in`;
@@ -57,7 +57,9 @@ const answering = (image: string) => ({ state: 'Completed', result: { image } })
  * what the next one observes.
  */
 const connect = async (deployment: Record<string, unknown>, matched = asMatched) => {
-	Object.assign(env, { AI: aiAnswering(answering(IMAGE)).ai, BUCKET, BACKUP: undefined, TZ: undefined }, deployment);
+	const workersAi = aiAnswering(answering(IMAGE));
+	generations = workersAi.generations;
+	Object.assign(env, { AI: workersAi.ai, BUCKET, BACKUP: undefined, TZ: undefined }, deployment);
 
 	const client = new Client({ name: 'test-harness', version: '0.0.0' });
 	await client.connect(
@@ -72,6 +74,7 @@ const connect = async (deployment: Record<string, unknown>, matched = asMatched)
 const kept = async () => (await BUCKET.list()).objects.map(({ key }) => key);
 
 let client: Client;
+let generations: Generation[];
 
 beforeAll(() => network.enable());
 afterAll(() => network.disable());
@@ -89,7 +92,8 @@ afterEach(async () => {
 	await client.close();
 });
 
-const createImage = () => client.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle' } });
+const createImage = (called?: string) =>
+	client.callTool({ name: 'create_image', arguments: { prompt: 'a red bicycle', ...(called === undefined ? {} : { name: called }) } });
 
 describe('Backup', () => {
 	// @behavior B-001
@@ -178,5 +182,44 @@ describe('Backup', () => {
 		const { structuredContent } = await createImage();
 
 		expect(structuredContent).toStrictEqual({ uri: IMAGE, mime_type: 'image/png' });
+	});
+
+	// @behavior B-010
+	it('should call the copy what the caller called it', async () => {
+		client = await connect({ BACKUP: 'yes' });
+
+		await createImage('a red bicycle');
+
+		expect(await kept()).toStrictEqual([expect.stringMatching(/163045-[0-9a-f]{4}-a red bicycle\.png$/)]);
+	});
+
+	// A generation is paid for the moment it is made, so a name that cannot be
+	// part of a path has to stop the call before the model is reached.
+	// @behavior B-011
+	it.each([
+		['a slash', 'sunsets/red'],
+		['a control character', 'sunset\u0007'],
+	])('should refuse a name holding %s without asking the model', async (_, called) => {
+		client = await connect({ BACKUP: 'yes' });
+
+		const result = await createImage(called);
+
+		expect(result.isError).toBe(true);
+		expect(generations).toStrictEqual([]);
+		expect(await kept()).toStrictEqual([]);
+	});
+
+	// @behavior B-012
+	it.each(['create_image', 'create_audio'])('should state what a name may hold in the schema %s offers', async (tool) => {
+		client = await connect({});
+
+		const { tools } = await client.listTools();
+
+		const { inputSchema } = tools.find(({ name }) => name === tool) ?? {};
+		expect((inputSchema?.properties as Record<string, unknown>)?.name).toMatchObject({
+			type: 'string',
+			pattern: expect.any(String),
+			maxLength: expect.any(Number),
+		});
 	});
 });

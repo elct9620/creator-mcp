@@ -5,6 +5,8 @@
  * copy that cannot be made is said in the log and never to them.
  */
 
+import { z } from 'zod';
+
 /** The one value that turns the copying on. Anything else leaves it off. */
 const ON = 'yes';
 
@@ -20,8 +22,29 @@ const USER_LENGTH = 16;
 const LENGTH = 'content-length';
 const TYPE = 'content-type';
 
-/** Keeps a copy of what the link holds. It never rejects, and never delays the reply's content. */
-export type Backup = (link: string, extension?: string) => Promise<void>;
+/** Long enough to name a file, short enough that a key stays a key. */
+const NAME_LENGTH = 64;
+
+/**
+ * What a caller may call a file, which is the only part of a path they have
+ * any say over. It is the last part of a key, so a slash would put the file
+ * somewhere they did not ask for; the rule is stated in the schema rather than
+ * enforced after the fact, because a generation is paid for the moment it is
+ * made.
+ */
+export const nameAsked = z
+	.string()
+	.min(1)
+	.max(NAME_LENGTH, `A name can be at most ${NAME_LENGTH} characters. Shorten it, or leave \`name\` off.`)
+	.regex(/^[^/\u0000-\u001f\u007f]+$/, 'A name becomes the last part of a path, so it cannot hold a slash or a control character.')
+	.optional()
+	.describe('What to call this file where the deployment keeps copies of what it generates. No slashes.');
+
+/** What the caller said about the file, in the words the path is built from. */
+export type Called = { extension?: string; name?: string };
+
+/** Keeps a copy of what the link holds. It never rejects, and never changes the reply. */
+export type Backup = (link: string, called: Called) => Promise<void>;
 
 const userOf = async (email: string) => {
 	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
@@ -75,19 +98,14 @@ const momentIn = (zone: string) => {
  * break where their day breaks. The name is the time of day and four random
  * characters, so two files made in the same second are two files.
  */
-const pathFor = async (email: string, zone: string | undefined, extension?: string) => {
+const pathFor = async (email: string, zone: string | undefined, { extension, name }: Called) => {
 	const { day, time } = momentIn(zoneOf(zone));
-	const name = `${time}-${crypto.randomUUID().slice(0, 4)}`;
+	const called = `${time}-${crypto.randomUUID().slice(0, 4)}${name ? `-${name}` : ''}${extension ? `.${extension}` : ''}`;
 
-	return `${PREFIX}/${await userOf(email)}/${day}/${extension ? `${name}.${extension}` : name}`;
+	return `${PREFIX}/${await userOf(email)}/${day}/${called}`;
 };
 
-const keep = async (
-	{ BUCKET, TZ }: Env,
-	access: CloudflareAccessContext | undefined,
-	link: string,
-	extension: string | undefined,
-): Promise<void> => {
+const keep = async ({ BUCKET, TZ }: Env, access: CloudflareAccessContext | undefined, link: string, called: Called): Promise<void> => {
 	const email = (await access?.getIdentity())?.email;
 	if (!email) {
 		console.warn('Backup is on, but Access resolved no address for this caller. Nothing was kept.');
@@ -113,7 +131,7 @@ const keep = async (
 		return;
 	}
 
-	await BUCKET.put(await pathFor(email, TZ, extension), source.body, {
+	await BUCKET.put(await pathFor(email, TZ, called), source.body, {
 		httpMetadata: { contentType: source.headers.get(TYPE) ?? undefined },
 	});
 };

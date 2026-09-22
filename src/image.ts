@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import type { Backup } from './backup';
+import { nameAsked, type Backup } from './backup';
 import { named } from './named';
 import { linkFrom, storedEncodingOf } from './stored';
 
@@ -180,6 +180,7 @@ const inputSchema = z.object({
 		.describe(
 			'Whether the background is left transparent or painted opaque. Only the GPT Image models can leave it transparent, and not in jpg.',
 		),
+	name: nameAsked,
 });
 
 const outputSchema = z.object({
@@ -236,7 +237,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai, backup: Backup | 
 			inputSchema,
 			outputSchema,
 		},
-		async ({ model, ...asked }) => {
+		async ({ model, name, ...asked }) => {
 			refuseWhatItCannotDo(model, asked);
 
 			const painter = PAINTERS[model];
@@ -250,7 +251,7 @@ export const registerCreateImage = (server: McpServer, ai: Ai, backup: Backup | 
 			const link = linkFrom(answer, 'image');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;
-			await backup?.(link, mimeType ? EXTENSIONS[mimeType] : undefined);
+			await backup?.(link, { extension: mimeType ? EXTENSIONS[mimeType] : undefined, name });
 
 			return {
 				content: [

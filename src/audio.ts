@@ -1,6 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
-import type { Backup } from './backup';
+import { nameAsked, type Backup } from './backup';
 import { named } from './named';
 import { linkFrom, storedEncodingOf } from './stored';
 
@@ -97,6 +97,7 @@ const inputSchema = z.object({
 		),
 	format: z.enum(FORMATS).optional().describe('The encoding the audio is stored in. elevenlabs/eleven-v3 stores only mp3 or opus.'),
 	speed: z.number().optional().describe('How fast the voice speaks. Only openai/tts-1 can vary it, between 0.25 and 4.'),
+	name: nameAsked,
 });
 
 const outputSchema = z.object({
@@ -152,7 +153,7 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | 
 			inputSchema,
 			outputSchema,
 		},
-		async ({ model, ...asked }) => {
+		async ({ model, name, ...asked }) => {
 			refuseWhatItCannotDo(model, asked);
 
 			const speaker = SPEAKERS[model];
@@ -161,7 +162,7 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | 
 			const link = linkFrom(answer, 'audio');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;
-			await backup?.(link, mimeType ? EXTENSIONS[mimeType] : undefined);
+			await backup?.(link, { extension: mimeType ? EXTENSIONS[mimeType] : undefined, name });
 
 			return {
 				content: [

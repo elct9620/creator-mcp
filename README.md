@@ -25,6 +25,7 @@ Generate an image from a prompt.
 | `resolution`   | `1K`                         | `1K`, `2K`, `4K`; `google/nano-banana-2-lite` and the GPT Image models generate `1K` alone                                                   |
 | `quality`      | `low`, where it can be named | `low`, `medium`, `high`, `xhigh`, `max`, `auto`; only the GPT Image models take one                                                          |
 | `background`   | the model's own              | `transparent`, `opaque`; only the GPT Image models leave it transparent, and never as `jpg`                                                  |
+| `name`         | the time of day alone        | What to call this file where the deployment [keeps copies](#backup). Up to 64 characters, and no slashes                                     |
 
 Google's tiers run `google/nano-banana-pro`, `google/nano-banana-2`,
 `google/nano-banana-2-lite` from dearest to cheapest. Of the GPT Image models,
@@ -35,13 +36,14 @@ the more capable. What each costs on an account is on the Cloudflare dashboard.
 
 Speak text aloud with a text-to-speech model.
 
-| Argument | Default         | Accepts                                                                                                                                       |
-| -------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `text`   | —               | What should be spoken. Required.                                                                                                              |
-| `model`  | `openai/tts-1`  | `openai/tts-1`, `elevenlabs/eleven-v3`                                                                                                        |
-| `voice`  | the model's own | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer` for `openai/tts-1`; an ElevenLabs voice ID for `elevenlabs/eleven-v3`, which requires one |
-| `format` | the model's own | `mp3`, `opus`, `wav`, `aac`, `flac`; `elevenlabs/eleven-v3` stores only `mp3` and `opus`                                                      |
-| `speed`  | the model's own | `0.25` to `4`, and only `openai/tts-1` can vary it                                                                                            |
+| Argument | Default               | Accepts                                                                                                                                       |
+| -------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text`   | —                     | What should be spoken. Required.                                                                                                              |
+| `model`  | `openai/tts-1`        | `openai/tts-1`, `elevenlabs/eleven-v3`                                                                                                        |
+| `voice`  | the model's own       | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer` for `openai/tts-1`; an ElevenLabs voice ID for `elevenlabs/eleven-v3`, which requires one |
+| `format` | the model's own       | `mp3`, `opus`, `wav`, `aac`, `flac`; `elevenlabs/eleven-v3` stores only `mp3` and `opus`                                                      |
+| `speed`  | the model's own       | `0.25` to `4`, and only `openai/tts-1` can vary it                                                                                            |
+| `name`   | the time of day alone | What to call this file where the deployment [keeps copies](#backup). Up to 64 characters, and no slashes                                      |
 
 An argument is named for what the caller is choosing, never for what one model
 happens to call it; each model is asked in its own words at the moment the

@@ -15,7 +15,15 @@ stays the same for as long as that address does and tells a reader nothing
 about whose it is; and `{date}` read in the zone `TZ` names, because a folder
 a person browses should break where their day breaks. A name is the time of
 day and four random characters, so that two files made in the same second are
-two files.
+two files, and then whatever the caller called it.
+
+A caller names a file with `name`, which is the only part of the path they
+have any say over. It is the last part of a key, so a slash in it would put
+the file somewhere they did not ask for; that, a control character, and a name
+longer than a name refuse the call before the model is asked, because a
+generation is paid for the moment it is made and a refusal afterwards would
+charge for nothing. The rule rides in the tool's own schema, so a caller can
+read it rather than discover it.
 
 A caller has paid for the generation before any of this runs, so nothing here
 may take that away from them: a copy that cannot be made leaves the reply
@@ -102,3 +110,26 @@ refuses the write.
 | Given | a bucket that refuses the write                |
 | When  | a file is generated                            |
 | Then  | the reply is the one the caller would have had |
+
+## `B-010` A caller who named the file
+
+| Step  | Statement                                        |
+| ----- | ------------------------------------------------ |
+| Given | a caller naming the file in `name`               |
+| When  | a file is generated                              |
+| Then  | the name is the last part of the copy's own name |
+
+## `B-011` A name that cannot be part of a path
+
+| Step  | Statement                                     |
+| ----- | --------------------------------------------- |
+| Given | a name holding a slash or a control character |
+| When  | a file is asked for                           |
+| Then  | the call is refused before the model is asked |
+
+## `B-012` The rule a caller can read
+
+| Step | Statement                                        |
+| ---- | ------------------------------------------------ |
+| When | a client lists what the server offers            |
+| Then | each tool's schema states what a `name` may hold |
