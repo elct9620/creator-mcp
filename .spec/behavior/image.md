@@ -7,7 +7,7 @@ The model stores what it generates and answers with a link to it. That link is
 presigned and stands for a day, and it is handed on exactly as given: a call is
 one-shot, so the caller reaches the image while the link still stands. The
 Worker carries the image itself only where a deployment asked for a backup,
-which is its own feature and changes nothing about this one's reply.
+which is its own feature, and then the reply links to the copy instead.
 
 More than one model generates here, and they do not agree on words.
 `google/nano-banana-pro` calls the resolution `image_size` where the other
@@ -141,11 +141,11 @@ long the link stands as well as where it points.
 
 ## `I-005` The image is linked rather than carried
 
-| Step  | Statement                                               |
-| ----- | ------------------------------------------------------- |
-| Given | a model answering with a link to the image it generated |
-| When  | `create_image` replies                                  |
-| Then  | the reply carries that link as given                    |
+| Step  | Statement                                                                                   |
+| ----- | ------------------------------------------------------------------------------------------- |
+| Given | a model answering with a link to the image it generated, and a deployment keeping no copies |
+| When  | `create_image` replies                                                                      |
+| Then  | the reply carries that link as given                                                        |
 
 ## `I-006` The encoding the stored image is in
 

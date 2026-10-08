@@ -11,6 +11,14 @@ AI_GATEWAY=
 # `yes` turns it on; anything else, this one empty included, leaves it off.
 BACKUP=
 
+# What signs the link a reply hands on to a copy: the account, an R2 API token
+# able to read the bucket, and the bucket's name as the R2 page shows it —
+# usually <Worker name>-bucket. Any of them empty leaves the copying off.
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET_NAME=
+
 # The time zone the date in a backup's path is read in, as an IANA name such as
 # Asia/Taipei. Empty reads it in UTC.
 TZ=

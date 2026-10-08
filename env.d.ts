@@ -13,6 +13,14 @@ interface Env {
 	AI_GATEWAY?: string;
 	/** Whether generated files are copied into the bucket. Only `yes` turns it on. */
 	BACKUP?: string;
+	/** The account the bucket is in, which names the S3 endpoint a copy's link is signed for. */
+	R2_ACCOUNT_ID?: string;
+	/** The R2 API token's access key, which signs a link to a copy. */
+	R2_ACCESS_KEY_ID?: string;
+	/** The R2 API token's secret, which signs a link to a copy. */
+	R2_SECRET_ACCESS_KEY?: string;
+	/** The bucket `BUCKET` is bound to, which the binding cannot say and a signed link has to name. */
+	R2_BUCKET_NAME?: string;
 	/**
 	 * The time zone the date in a backup's path is read in. Unset is UTC, which
 	 * is also what the runtime itself always keeps, so nothing else moves with

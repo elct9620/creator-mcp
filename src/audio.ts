@@ -243,22 +243,23 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | 
 			const link = linkFrom(answer, 'audio');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;
-			await backup?.(link, { extension: mimeType ? EXTENSIONS[mimeType] : undefined, name });
+			const copy = await backup?.(link, { extension: mimeType ? EXTENSIONS[mimeType] : undefined, name });
+			const delivered = copy ?? link;
 
 			return {
 				content: [
 					{
 						type: 'resource_link',
-						uri: link,
+						uri: delivered,
 						name: 'generated-audio',
 						mimeType,
 					},
 					{
 						type: 'text',
-						text: `The audio is at ${link}. That link works for about a day, so save the file before then.`,
+						text: `The audio is at ${delivered}. That link works for about a day, so save the file before then.`,
 					},
 				],
-				structuredContent: { uri: link, mime_type: mimeType },
+				structuredContent: { uri: delivered, mime_type: mimeType },
 			};
 		},
 	);

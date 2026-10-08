@@ -27,6 +27,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/server": "2.3.0",
+		"aws4fetch": "^1.0.20",
 		"hono": "^4.13.13",
 		"zod": "^4.6.5"
 	}

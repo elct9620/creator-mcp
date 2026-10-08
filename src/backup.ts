@@ -1,10 +1,12 @@
 /**
  * The copy a deployment keeps of what a model generated, so the file outlives
- * the day the model's own link stands for. The caller has already paid for the
- * generation by the time any of this runs, so nothing here may cost them it: a
- * copy that cannot be made is said in the log and never to them.
+ * the day the model's own link stands for, and the link a caller is handed to
+ * it. The caller has already paid for the generation by the time any of this
+ * runs, so nothing here may cost them it: a copy that cannot be made is said in
+ * the log and never to them.
  */
 
+import { AwsClient } from 'aws4fetch';
 import { z } from 'zod';
 import type { Carried } from './stored';
 
@@ -16,6 +18,9 @@ const UTC = 'UTC';
 // A bucket whose root fills with files of no stated kind cannot later say what
 // else it holds, so nothing is written outside this.
 const PREFIX = 'backup';
+
+/** As long as the model's own link stands, so which of the two a caller holds does not change how long they have. */
+const LINK_SECONDS = 24 * 60 * 60;
 
 /** Eight bytes of the digest, which is what names a caller without telling who they are. */
 const USER_LENGTH = 16;
@@ -44,8 +49,40 @@ export const nameAsked = z
 /** What the caller said about the file, in the words the path is built from. */
 export type Called = { extension?: string; name?: string };
 
-/** Keeps a copy of what the link holds, or of the file handed over. It never rejects, and never changes the reply. */
-export type Backup = (source: string | Carried, called: Called) => Promise<void>;
+/** Keeps a copy of what the link holds, or of the file handed over, and answers with a link to it — or with nothing when none was kept. It never rejects. */
+export type Backup = (source: string | Carried, called: Called) => Promise<string | undefined>;
+
+/** What signs a link to a copy. The binding reads and writes but cannot sign, so this goes through R2's S3 API. */
+type Signing = { accountId: string; bucket: string; client: AwsClient };
+
+/**
+ * What the deployment stated for signing, or nothing when any of it is
+ * missing. The bucket's name is among it because nothing else can say it: a
+ * deploy names the bucket after the Worker as the dashboard names it, and the
+ * binding does not tell.
+ */
+const SIGNING_SECRETS = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'] as const;
+
+const signingOf = ({ R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME }: Env): Signing | undefined =>
+	R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET_NAME
+		? {
+				accountId: R2_ACCOUNT_ID,
+				bucket: R2_BUCKET_NAME,
+				// R2 ignores both, and the signature needs them stated.
+				// https://developers.cloudflare.com/r2/examples/aws/aws4fetch/
+				client: new AwsClient({ accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY, service: 's3', region: 'auto' }),
+			}
+		: undefined;
+
+const linkTo = async ({ accountId, bucket, client }: Signing, path: string) => {
+	// Each part of the path is the caller's to name, and a `?` or `#` left as
+	// it is would end the path the link is signed for.
+	const key = path.split('/').map(encodeURIComponent).join('/');
+	const url = new URL(`https://${accountId}.r2.cloudflarestorage.com/${bucket}/${key}`);
+	url.searchParams.set('X-Amz-Expires', String(LINK_SECONDS));
+
+	return (await client.sign(new Request(url), { aws: { signQuery: true } })).url;
+};
 
 const userOf = async (email: string) => {
 	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
@@ -106,12 +143,13 @@ const pathFor = async (email: string, zone: string | undefined, { extension, nam
 	return `${PREFIX}/${await userOf(email)}/${day}/${called}`;
 };
 
+/** Writes the copy, and answers with where it went or with nothing when it could not be kept. */
 const keep = async (
 	{ BUCKET, TZ }: Env,
 	access: CloudflareAccessContext | undefined,
 	from: string | Carried,
 	called: Called,
-): Promise<void> => {
+): Promise<string | undefined> => {
 	const email = (await access?.getIdentity())?.email;
 	if (!email) {
 		console.warn('Backup is on, but Access resolved no address for this caller. Nothing was kept.');
@@ -120,15 +158,16 @@ const keep = async (
 	}
 
 	if (typeof from !== 'string') {
+		const path = await pathFor(email, TZ, called);
 		await BUCKET.put(
-			await pathFor(email, TZ, called),
+			path,
 			Uint8Array.from(atob(from.data), (char) => char.charCodeAt(0)),
 			{
 				httpMetadata: { contentType: from.mimeType },
 			},
 		);
 
-		return;
+		return path;
 	}
 
 	const source = await fetch(from);
@@ -159,20 +198,36 @@ const keep = async (
 			httpMetadata: { contentType: source.headers.get(TYPE) ?? undefined },
 		}),
 	]);
+
+	return path;
 };
 
 /**
  * What this deployment does about keeping copies, decided once per request:
- * a `Backup` when it asked for them, and nothing at all when it did not, so a
- * tool serving a deployment that keeps none holds nothing that could.
+ * a `Backup` when it asked for them and stated how to link to them, and
+ * nothing at all otherwise, so a tool serving a deployment that keeps none
+ * holds nothing that could. A copy nobody can be linked to would hand a caller
+ * a link that fails only once they follow it, so asking without the signing
+ * secrets is the same as not asking.
  */
-export const backupFor = (env: Env, access: CloudflareAccessContext | undefined): Backup | undefined =>
-	env.BACKUP === ON
-		? async (source, called) => {
-				try {
-					await keep(env, access, source, called);
-				} catch (error) {
-					console.error('Backup is on, but the copy could not be kept.', error);
-				}
-			}
-		: undefined;
+export const backupFor = (env: Env, access: CloudflareAccessContext | undefined): Backup | undefined => {
+	if (env.BACKUP !== ON) return undefined;
+
+	const signing = signingOf(env);
+	if (!signing) {
+		const missing = SIGNING_SECRETS.filter((secret) => !env[secret]);
+		console.warn(`Backup is on, but ${missing.join(', ')} is unset, so no copy could be linked to. Nothing is kept.`);
+
+		return undefined;
+	}
+
+	return async (source, called) => {
+		try {
+			const path = await keep(env, access, source, called);
+
+			return path && (await linkTo(signing, path));
+		} catch (error) {
+			console.error('Backup is on, but the copy could not be kept.', error);
+		}
+	};
+};

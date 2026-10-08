@@ -55,7 +55,8 @@ holding it has nothing to say about what it is, and the reply would be left with
 no encoding to state.
 
 What happens after the model answers is what happens for a generated image: the
-link is presigned, stands for a day, and is handed on exactly as given; the
+link is presigned, stands for a day, and is handed on exactly as given unless a
+deployment keeps a copy, when the copy's link goes instead; the
 encoding is read from the store rather than from the request; and the reply
 states the link three ways, because a resource link, structured content and text
 each reach a different reader.
@@ -124,11 +125,11 @@ in translation rather than refused.
 
 ## `AU-005` The audio is linked rather than carried
 
-| Step  | Statement                                               |
-| ----- | ------------------------------------------------------- |
-| Given | a model answering with a link to the audio it generated |
-| When  | `create_audio` replies                                  |
-| Then  | the reply carries that link as given                    |
+| Step  | Statement                                                                                   |
+| ----- | ------------------------------------------------------------------------------------------- |
+| Given | a model answering with a link to the audio it generated, and a deployment keeping no copies |
+| When  | `create_audio` replies                                                                      |
+| Then  | the reply carries that link as given                                                        |
 
 ## `AU-006` The encoding the stored audio is in
 

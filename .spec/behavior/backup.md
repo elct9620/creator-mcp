@@ -3,9 +3,27 @@
 What a deployment keeps for itself. A model stores what it generated and
 answers with a link that stands for about a day, or hands the file over in the
 answer itself and keeps nothing; a deployment that wants the file to outlive
-either sets `BACKUP` to `yes`, and a copy is written into its own bucket while
-the reply goes on as it would have without one. Anything else, an unset secret
-included, leaves the copying off.
+either sets `BACKUP` to `yes`, and a copy is written into its own bucket.
+Anything else, an unset secret included, leaves the copying off.
+
+The reply then links to the copy rather than to the model's own store. A file
+handed over in the answer has no link of its own, and a client that cannot
+show it leaves the person nothing to fetch; a link in text is the one form
+every client passes on, so the copy is what gives every file one. Its link is
+presigned through R2's S3 API with credentials of the deployment's own, since
+the bucket binding reads and writes but cannot sign, and it stands for a day,
+as the model's own link does, so a caller's sense of how long they have does
+not turn on which of the two they were handed.
+
+Signing needs the bucket's name, and nothing in the repository can state it:
+the bucket a deploy creates is named after the Worker as the dashboard names
+it, which a fork need not share, and the binding cannot say at runtime which
+bucket it is. So the deployment states it, beside the credentials, in
+`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and
+`R2_BUCKET_NAME`. A deployment that asks for copies without all four leaves
+the copying off, because a copy it could not link to would hand a caller a link
+that fails only once they follow it, and the log names the ones missing, since
+the deployment has nothing else to go on.
 
 Who a copy belongs to comes from Cloudflare Access, which resolved the caller
 before the request arrived. The path is `backup/{user}/{date}/{name}`, and each
@@ -68,13 +86,13 @@ its length known, so the second of these never applies to it.
 | When  | a file is generated                                      |
 | Then  | a copy of it is written at `backup/{user}/{date}/{name}` |
 
-## `B-003` What a backup does not change
+## `B-003` The link a backup hands on
 
-| Step  | Statement                                                       |
-| ----- | --------------------------------------------------------------- |
-| Given | a deployment with `BACKUP` set to `yes`                         |
-| When  | a file is generated                                             |
-| Then  | the reply carries the model's own link, as it would without one |
+| Step  | Statement                                                  |
+| ----- | ---------------------------------------------------------- |
+| Given | a deployment with `BACKUP` set to `yes`                    |
+| When  | a file is generated                                        |
+| Then  | the reply links to the copy rather than to the model's own |
 
 ## `B-004` The zone a day is read in
 
@@ -118,11 +136,11 @@ its length known, so the second of these never applies to it.
 
 ## `B-009` A backup that cannot be made
 
-| Step  | Statement                                      |
-| ----- | ---------------------------------------------- |
-| Given | a bucket that refuses the write                |
-| When  | a file is generated                            |
-| Then  | the reply is the one the caller would have had |
+| Step  | Statement                              |
+| ----- | -------------------------------------- |
+| Given | a bucket that refuses the write        |
+| When  | a file is generated                    |
+| Then  | the reply carries the model's own link |
 
 ## `B-010` A caller who named the file
 
@@ -154,3 +172,19 @@ its length known, so the second of these never applies to it.
 | Given | a deployment with `BACKUP` set to `yes`, and a model answering with the file itself |
 | When  | the file is generated                                                               |
 | Then  | a copy of it is written at `backup/{user}/{date}/{name}`                            |
+
+## `B-014` How long the copy's link stands
+
+| Step  | Statement                                   |
+| ----- | ------------------------------------------- |
+| Given | a deployment with `BACKUP` set to `yes`     |
+| When  | a file is generated                         |
+| Then  | the link to the copy is presigned for a day |
+
+## `B-015` A deployment that cannot sign a link
+
+| Step  | Statement                                                                                                 |
+| ----- | --------------------------------------------------------------------------------------------------------- |
+| Given | a deployment with `BACKUP` set to `yes` but any of the four signing secrets unset                         |
+| When  | a file is generated                                                                                       |
+| Then  | nothing is written to the bucket, the reply carries the model's own link, and the log names what is unset |

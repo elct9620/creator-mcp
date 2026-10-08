@@ -12,7 +12,7 @@ export default defineConfig({
 			optimizer: {
 				ssr: {
 					enabled: true,
-					include: ['@modelcontextprotocol/server', '@modelcontextprotocol/client', 'zod', 'hono', 'msw', '@msw/cloudflare'],
+					include: ['@modelcontextprotocol/server', '@modelcontextprotocol/client', 'zod', 'hono', 'msw', '@msw/cloudflare', 'aws4fetch'],
 				},
 			},
 		},

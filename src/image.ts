@@ -259,23 +259,24 @@ export const registerCreateImage = (server: McpServer, ai: Ai, backup: Backup | 
 			const link = linkFrom(answer, 'image');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;
-			await backup?.(link, { extension: mimeType ? EXTENSIONS[mimeType] : undefined, name });
+			const copy = await backup?.(link, { extension: mimeType ? EXTENSIONS[mimeType] : undefined, name });
+			const delivered = copy ?? link;
 
 			return {
 				content: [
 					{
 						type: 'resource_link',
-						uri: link,
+						uri: delivered,
 						name: 'generated-image',
 						title: asked.prompt,
 						mimeType,
 					},
 					{
 						type: 'text',
-						text: `The image is at ${link}. That link works for about a day, so save the image before then.`,
+						text: `The image is at ${delivered}. That link works for about a day, so save the image before then.`,
 					},
 				],
-				structuredContent: { uri: link, mime_type: mimeType },
+				structuredContent: { uri: delivered, mime_type: mimeType },
 			};
 		},
 	);
