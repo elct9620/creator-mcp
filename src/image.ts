@@ -12,6 +12,7 @@ import { linkFrom, storedEncodingOf } from './stored';
 const MODELS = [
 	'google/nano-banana-pro',
 	'google/nano-banana-2',
+	'google/nano-banana-2.1',
 	'google/nano-banana-2-lite',
 	'openai/gpt-image-2.5-flare',
 	'openai/gpt-image-2.5-sunburst',
@@ -19,13 +20,13 @@ const MODELS = [
 
 /**
  * The same reason that picks the smallest resolution picks the model: a caller
- * who said nothing has not asked to pay more, and Google's tiers put this one
- * below `google/nano-banana-pro`. It is not Google's cheapest tier —
- * `google/nano-banana-2-lite` is — but that one generates 1K alone, and a
+ * who said nothing has not asked to pay more, and of the nano banana models
+ * that generate every resolution this one costs the least per output token.
+ * `google/nano-banana-2-lite` costs no more, but it generates 1K alone, and a
  * default that quietly caps what can be asked for is a different thing from a
  * default that costs less.
  */
-const DEFAULT_MODEL = 'google/nano-banana-2';
+const DEFAULT_MODEL = 'google/nano-banana-2.1';
 
 const ASPECT_RATIOS = ['1:1', '3:2', '2:3', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'] as const;
 const FORMATS = ['jpg', 'png', 'webp'] as const;
@@ -122,6 +123,19 @@ const GPT_IMAGE: Painter = {
 	}),
 };
 
+/**
+ * Cloudflare's schemas for these two models admit the same words, and Google
+ * documents nothing under the name `google/nano-banana-2.1` to narrow it.
+ */
+const NANO_BANANA_2: Painter = {
+	formats: alike(['jpg', 'png']),
+	shapes: alike(ASPECT_RATIOS),
+	resolutions: ['1K', '2K', '4K'],
+	quality: false,
+	transparent: false,
+	request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
+};
+
 const PAINTERS: Record<Model, Painter> = {
 	'google/nano-banana-pro': {
 		formats: alike(['jpg', 'png', 'webp']),
@@ -131,14 +145,8 @@ const PAINTERS: Record<Model, Painter> = {
 		transparent: false,
 		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, image_size: resolution }),
 	},
-	'google/nano-banana-2': {
-		formats: alike(['jpg', 'png']),
-		shapes: alike(ASPECT_RATIOS),
-		resolutions: ['1K', '2K', '4K'],
-		quality: false,
-		transparent: false,
-		request: ({ prompt, aspect_ratio, format, resolution }) => ({ prompt, aspect_ratio, output_format: format, resolution }),
-	},
+	'google/nano-banana-2': NANO_BANANA_2,
+	'google/nano-banana-2.1': NANO_BANANA_2,
 	'google/nano-banana-2-lite': {
 		formats: alike(['jpg', 'png']),
 		shapes: alike(ASPECT_RATIOS),
@@ -157,15 +165,15 @@ const inputSchema = z.object({
 		.enum(MODELS)
 		.default(DEFAULT_MODEL)
 		.describe(
-			'The model to generate with. Of the nano banana models, google/nano-banana-pro costs the most and ' +
-				'google/nano-banana-2-lite the least. Of the GPT Image models, openai/gpt-image-2.5-flare is the faster ' +
-				'and openai/gpt-image-2.5-sunburst the more capable.',
+			'The model to generate with. Of the nano banana models, google/nano-banana-pro costs the most, then ' +
+				'google/nano-banana-2, then google/nano-banana-2.1 and google/nano-banana-2-lite. ' +
+				'Of the GPT Image models, openai/gpt-image-2.5-flare is the faster and openai/gpt-image-2.5-sunburst the more capable.',
 		),
 	aspect_ratio: z.enum(ASPECT_RATIOS).optional().describe('The shape of the image. The GPT Image models draw 1:1, 2:3 or 3:2 alone.'),
 	format: z
 		.enum(FORMATS)
 		.optional()
-		.describe('The encoding the image is stored in. google/nano-banana-2 and google/nano-banana-2-lite do not store webp.'),
+		.describe('The encoding the image is stored in. Only google/nano-banana-pro and the GPT Image models store webp.'),
 	resolution: z
 		.enum(RESOLUTIONS)
 		.default(DEFAULT_RESOLUTION)

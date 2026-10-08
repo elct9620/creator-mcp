@@ -99,10 +99,10 @@ describe('image generation', () => {
 	});
 
 	// @behavior I-003
-	it('should generate with nano-banana-2 when no model is named', async () => {
+	it('should generate with nano-banana-2.1 when no model is named', async () => {
 		await createImage({ prompt: 'a red bicycle' });
 
-		expect(generations[0].model).toBe('google/nano-banana-2');
+		expect(generations[0].model).toBe('google/nano-banana-2.1');
 	});
 
 	// The caller says `aspect_ratio`, `format` and `resolution` whichever model
@@ -124,6 +124,11 @@ describe('image generation', () => {
 			'google/nano-banana-2',
 			{ aspect_ratio: '16:9', format: 'png', resolution: '2K' },
 			{ aspect_ratio: '16:9', output_format: 'png', resolution: '2K' },
+		],
+		[
+			'google/nano-banana-2.1',
+			{ aspect_ratio: '9:16', format: 'jpg', resolution: '4K' },
+			{ aspect_ratio: '9:16', output_format: 'jpg', resolution: '4K' },
 		],
 		['google/nano-banana-2-lite', { format: 'jpg', resolution: '1K' }, { output_format: 'jpg', resolution: '1K' }],
 		[
@@ -278,8 +283,8 @@ describe('image generation', () => {
 	});
 
 	// @behavior I-018
-	it('should refuse an encoding the model cannot store', async () => {
-		const result = await createImage({ prompt: 'a red bicycle', model: 'google/nano-banana-2', format: 'webp' });
+	it.each(['google/nano-banana-2', 'google/nano-banana-2.1'])('should refuse an encoding %s cannot store', async (model) => {
+		const result = await createImage({ prompt: 'a red bicycle', model, format: 'webp' });
 
 		expect(result.isError).toBe(true);
 		expect(generations).toHaveLength(0);

@@ -29,13 +29,21 @@ bounds what can be asked for.
 Editing an existing image is a tool of its own rather than part of this one, so
 the reference images a GPT Image model can take are no part of this vocabulary.
 
-A call naming no model is generated with `google/nano-banana-2`. The same
+A call naming no model is generated with `google/nano-banana-2.1`. The same
 reason that picks the smallest resolution picks it: a caller who said nothing
-has not asked to pay more, and Google's tiers put it below
-`google/nano-banana-pro`. Google's cheapest tier is
-`google/nano-banana-2-lite`, and it is not the default because it generates 1K
-alone — a default that quietly caps what can be asked for is a different thing
-from one that costs less.
+has not asked to pay more, and of the nano banana models that generate every
+resolution it costs the least — an output token from it is half the price of
+one from `google/nano-banana-2`, and a quarter of one from
+`google/nano-banana-pro`. `google/nano-banana-2-lite` costs no more per output
+token, and it is not the default because it generates 1K alone — a default
+that quietly caps what can be asked for is a different thing from one that
+costs less.
+
+Google documents nothing under the name `google/nano-banana-2.1`, so what it
+can be asked for is what Cloudflare's schema for it admits, and that is what
+`google/nano-banana-2` admits. Its 4K is not taken on the schema's word alone,
+since the lite model's schema offers a 4K it never generates: asked for 4K at
+16:9, it has answered with an image 5504 pixels wide.
 
 A call naming no resolution is generated at the smallest one. It is the
 cheapest, and a caller who said nothing has not asked to pay more; which one
@@ -61,10 +69,10 @@ model is named.
 A request the chosen model cannot honour is refused before it is sent, because
 the alternative is an image that quietly is not what was asked for: an encoding
 that fell back to the model's own, a shape or a resolution the model never had,
-a quality it ignored, a background painted over. `google/nano-banana-2` and
-`google/nano-banana-2-lite` do not store webp, `google/nano-banana-2-lite`
-generates 1K alone, a GPT Image model draws `1:1`, `2:3` and `3:2` alone, at
-1K, and a nano banana model cannot be asked for a quality or a transparent
+a quality it ignored, a background painted over. `google/nano-banana-2`,
+`google/nano-banana-2.1` and `google/nano-banana-2-lite` do not store webp,
+`google/nano-banana-2-lite` generates 1K alone, a GPT Image model draws `1:1`,
+`2:3` and `3:2` alone, at 1K, and a nano banana model cannot be asked for a quality or a transparent
 background. What the schema cannot state and a description can only advise,
 the call itself enforces, and each refusal names the way out so a caller can
 ask again rather than only be told no.
@@ -117,11 +125,11 @@ long the link stands as well as where it points.
 
 ## `I-003` The model a caller names nothing for
 
-| Step  | Statement                                  |
-| ----- | ------------------------------------------ |
-| Given | a call naming no model                     |
-| When  | `create_image` is called                   |
-| Then  | `google/nano-banana-2` generates the image |
+| Step  | Statement                                    |
+| ----- | -------------------------------------------- |
+| Given | a call naming no model                       |
+| When  | `create_image` is called                     |
+| Then  | `google/nano-banana-2.1` generates the image |
 
 ## `I-004` What the caller asks of the generation
 
