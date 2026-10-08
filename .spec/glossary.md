@@ -42,9 +42,9 @@ call, a speaker is what this application knows about that model.
 ## voice
 
 Who is speaking. Every model asks for one, and they do not ask alike:
-`openai/tts-1` draws from a closed set of names it was trained with,
-`elevenlabs/eleven-v3` takes an identifier from an open library and has no
-default to fall back on.
+`openai/tts-1` and the Gemini models each draw from a closed set of names they
+were trained with, `elevenlabs/eleven-v3` takes an identifier from an open
+library and has no default to fall back on.
 
 Turned down as words a caller has to say: `voice_id`, the ElevenLabs spelling.
 A caller says `voice` whichever model is speaking, and the speaker for that

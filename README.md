@@ -39,14 +39,19 @@ Of the GPT Image models, `openai/gpt-image-2.5-flare` is the faster and
 
 Speak text aloud with a text-to-speech model.
 
-| Argument | Default               | Accepts                                                                                                                                       |
-| -------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `text`   | —                     | What should be spoken. Required.                                                                                                              |
-| `model`  | `openai/tts-1`        | `openai/tts-1`, `elevenlabs/eleven-v3`                                                                                                        |
-| `voice`  | the model's own       | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer` for `openai/tts-1`; an ElevenLabs voice ID for `elevenlabs/eleven-v3`, which requires one |
-| `format` | the model's own       | `mp3`, `opus`, `wav`, `aac`, `flac`; `elevenlabs/eleven-v3` stores only `mp3` and `opus`                                                      |
-| `speed`  | the model's own       | `0.25` to `4`, and only `openai/tts-1` can vary it                                                                                            |
-| `name`   | the time of day alone | What to call this file where the deployment [keeps copies](#backup). Up to 64 characters, and no slashes                                      |
+| Argument | Default                            | Accepts                                                                                                                                                                                                                                      |
+| -------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text`   | —                                  | What should be spoken. Required.                                                                                                                                                                                                             |
+| `model`  | `google/gemini-3.8-flash-lite-tts` | `openai/tts-1`, `elevenlabs/eleven-v3`, `google/gemini-3.8-flash-tts`, `google/gemini-3.8-flash-lite-tts`                                                                                                                                    |
+| `voice`  | the model's own                    | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer` for `openai/tts-1`; one of the 30 named in the tool's own schema, such as `Kore` or `Puck`, for the Gemini models; an ElevenLabs voice ID for `elevenlabs/eleven-v3`, which requires one |
+| `format` | the model's own                    | `mp3`, `opus`, `wav`, `aac`, `flac`; `elevenlabs/eleven-v3` stores only `mp3` and `opus`, the Gemini models only `wav`                                                                                                                       |
+| `speed`  | the model's own                    | `0.25` to `4`, and only `openai/tts-1` can vary it                                                                                                                                                                                           |
+| `name`   | the time of day alone              | What to call this file where the deployment [keeps copies](#backup). Up to 64 characters, and no slashes                                                                                                                                     |
+
+`google/gemini-3.8-flash-lite-tts` speaks Mandarin closest to how people in
+Taiwan do, and `google/gemini-3.8-flash-tts` pronounces most exactly at a higher
+price. `openai/tts-1` is charged by the character where the Gemini models are
+charged by the second, so it is the cheapest for Chinese.
 
 An argument is named for what the caller is choosing, never for what one model
 happens to call it; each model is asked in its own words at the moment the

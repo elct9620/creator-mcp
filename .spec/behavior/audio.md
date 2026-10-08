@@ -3,12 +3,13 @@
 The tool this application offers for speaking text aloud, and what it hands
 back.
 
-More than one model speaks here, and they do not agree on words. One names a
-voice `voice`, the other `voice_id`; one calls the stored encoding
-`response_format` and takes `mp3`, the other calls it `output_format` and takes
-`mp3_44100_128`; only one can be asked to speak faster. So the tool keeps a
-vocabulary of its own and every model states how much of it it answers to,
-translating at the moment the request is made.
+More than one model speaks here, and they do not agree on words. OpenAI names a
+voice `voice` and ElevenLabs `voice_id`; OpenAI calls the stored encoding
+`response_format` and takes `mp3`, ElevenLabs calls it `output_format` and takes
+`mp3_44100_128`, and a Gemini model cannot be asked for one at all; only
+`openai/tts-1` can be asked to speak faster. So the tool keeps a vocabulary of
+its own and every model states how much of it it answers to, translating at the
+moment the request is made.
 
 That the vocabulary is shared rather than split per model is forced as well as
 chosen: a tool's `inputSchema` is a JSON Schema whose `type` must be `object`,
@@ -16,8 +17,25 @@ so a union of per-model shapes has nowhere in the protocol to live. What the
 schema cannot say, the description of each argument says instead — which model
 requires a voice, which stores only some encodings, which can vary speed.
 
-The model a caller names nothing for is the one that can be asked with text
-alone. A voice is the other model's to require, not this tool's to invent.
+A call naming no model is spoken by `google/gemini-3.8-flash-lite-tts`, and it
+is chosen for how it sounds rather than for what it costs: of the models here,
+its Mandarin comes closest to how people in Taiwan speak, where
+`google/gemini-3.8-flash-tts` pronounces more exactly but sounds less local. It
+is not the cheapest. `openai/tts-1` is charged by the character of text and a
+Gemini model by the second of audio, so for Chinese, which packs much into
+each second, `openai/tts-1` costs about half as much; a caller who would rather
+pay less names it. Whichever model is the default has to be one that can be
+asked with text alone — a voice is `elevenlabs/eleven-v3`'s to require, not this
+tool's to invent.
+
+How a Gemini model should sound cannot be steered by writing it into the text:
+an instruction there is read aloud with the rest. So nothing in this tool
+suggests it.
+
+A Gemini model always answers in WAV and has no word for an encoding. Asking it
+for `wav` asks for what it already gives, so that is let through and nothing
+about the encoding is sent; any other encoding is refused. It takes up to
+10,000 characters, which is what the binding admits.
 
 Raw PCM is not among the encodings offered. It carries no container, so a store
 holding it has nothing to say about what it is, and the reply would be left with
@@ -77,11 +95,11 @@ in translation rather than refused.
 
 ## `AU-003` The model a caller names nothing for
 
-| Step  | Statement                      |
-| ----- | ------------------------------ |
-| Given | a call naming no model         |
-| When  | `create_audio` is called       |
-| Then  | `openai/tts-1` speaks the text |
+| Step  | Statement                                          |
+| ----- | -------------------------------------------------- |
+| Given | a call naming no model                             |
+| When  | `create_audio` is called                           |
+| Then  | `google/gemini-3.8-flash-lite-tts` speaks the text |
 
 ## `AU-004` Each model is asked in its own words
 
@@ -266,3 +284,11 @@ in translation rather than refused.
 | Given | a model answering with the audio itself rather than a link to it |
 | When  | `create_audio` replies                                           |
 | Then  | the structured content carries the encoding alone                |
+
+## `AU-027` An encoding the model already gives
+
+| Step  | Statement                                          |
+| ----- | -------------------------------------------------- |
+| Given | `wav` and a model that has no word for an encoding |
+| When  | `create_audio` is called                           |
+| Then  | the model speaks, and is not asked for an encoding |

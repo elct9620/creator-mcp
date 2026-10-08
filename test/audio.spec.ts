@@ -106,10 +106,10 @@ describe('audio generation', () => {
 	});
 
 	// @behavior AU-003
-	it('should speak with tts-1 when no model is named', async () => {
+	it('should speak with gemini-3.8-flash-lite-tts when no model is named', async () => {
 		await createAudio({ text: 'the tide is turning' });
 
-		expect(generations[0].model).toBe('openai/tts-1');
+		expect(generations[0].model).toBe('google/gemini-3.8-flash-lite-tts');
 	});
 
 	// An exact match rather than a subset: a key the model never asked for is
@@ -124,6 +124,25 @@ describe('audio generation', () => {
 			response_format: 'flac',
 			speed: 1.25,
 		});
+	});
+
+	// @behavior AU-004
+	it.each(['google/gemini-3.8-flash-tts', 'google/gemini-3.8-flash-lite-tts'])(
+		'should ask %s in its own words when it is the model',
+		async (model) => {
+			await createAudio({ text: 'the tide is turning', model, voice: 'Kore' });
+
+			expect(generations[0].inputs).toStrictEqual({ text: 'the tide is turning', voice: 'Kore' });
+		},
+	);
+
+	// WAV is all a Gemini model gives, so asking for it is already met and
+	// there is no key to send it under.
+	// @behavior AU-027
+	it('should speak without an encoding when a model that gives only wav is asked for wav', async () => {
+		await createAudio({ text: 'the tide is turning', model: 'google/gemini-3.8-flash-tts', format: 'wav' });
+
+		expect(generations[0].inputs).toStrictEqual({ text: 'the tide is turning' });
 	});
 
 	// @behavior AU-004
@@ -146,7 +165,7 @@ describe('audio generation', () => {
 
 	// @behavior AU-006
 	it('should state what the store holds when the caller asked for something else', async () => {
-		const { content } = await createAudio({ text: 'the tide is turning', format: 'flac' });
+		const { content } = await createAudio({ text: 'the tide is turning', model: 'openai/tts-1', format: 'flac' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'audio/mpeg' });
 	});
@@ -155,7 +174,7 @@ describe('audio generation', () => {
 	it('should state the encoding the caller asked for when the store will not say', async () => {
 		network.resetHandlers(storeRefusing());
 
-		const { content } = await createAudio({ text: 'the tide is turning', format: 'wav' });
+		const { content } = await createAudio({ text: 'the tide is turning', model: 'openai/tts-1', format: 'wav' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'audio/wav' });
 	});
@@ -164,7 +183,7 @@ describe('audio generation', () => {
 	it('should state the encoding the caller asked for when the store cannot be reached', async () => {
 		network.resetHandlers(http.get(AUDIO_PATH, () => HttpResponse.error()));
 
-		const { content } = await createAudio({ text: 'the tide is turning', format: 'opus' });
+		const { content } = await createAudio({ text: 'the tide is turning', model: 'openai/tts-1', format: 'opus' });
 
 		expect(linkIn(content)).toMatchObject({ mimeType: 'audio/ogg' });
 	});
@@ -240,8 +259,11 @@ describe('audio generation', () => {
 	// reply: the point of refusing is that nothing is billed and nothing is
 	// generated, so every case says the model was never reached.
 	// @behavior AU-015
-	it('should refuse when the text is longer than the model speaks', async () => {
-		const result = await createAudio({ text: 'a'.repeat(4097), model: 'openai/tts-1' });
+	it.each([
+		['openai/tts-1', 4097],
+		['google/gemini-3.8-flash-lite-tts', 10001],
+	])('should refuse when the text is longer than %s speaks', async (model, length) => {
+		const result = await createAudio({ text: 'a'.repeat(length), model });
 
 		expect(result.isError).toBe(true);
 		expect(generations).toHaveLength(0);
@@ -256,8 +278,27 @@ describe('audio generation', () => {
 	});
 
 	// @behavior AU-017
-	it('should refuse a voice the model does not have', async () => {
-		const result = await createAudio({ text: 'the tide is turning', model: 'openai/tts-1', voice: 'JBFqnCBsd6RMkjVDRZzb' });
+	it.each([
+		['openai/tts-1', 'JBFqnCBsd6RMkjVDRZzb'],
+		['google/gemini-3.8-flash-tts', 'nova'],
+	])('should refuse a voice %s does not have', async (model, voice) => {
+		const result = await createAudio({ text: 'the tide is turning', model, voice });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
+	});
+
+	// @behavior AU-018
+	it('should refuse an encoding other than wav from a Gemini model', async () => {
+		const result = await createAudio({ text: 'the tide is turning', model: 'google/gemini-3.8-flash-lite-tts', format: 'mp3' });
+
+		expect(result.isError).toBe(true);
+		expect(generations).toHaveLength(0);
+	});
+
+	// @behavior AU-019
+	it('should refuse a speed from a Gemini model', async () => {
+		const result = await createAudio({ text: 'the tide is turning', model: 'google/gemini-3.8-flash-tts', speed: 1.5 });
 
 		expect(result.isError).toBe(true);
 		expect(generations).toHaveLength(0);
@@ -323,6 +364,8 @@ describe('audio generation', () => {
 		expect(properties?.voice.description).toContain('elevenlabs/eleven-v3 takes an ElevenLabs voice ID, and requires one');
 		expect(properties?.format.description).toContain('elevenlabs/eleven-v3 stores only mp3 or opus');
 		expect(properties?.speed.description).toContain('Only openai/tts-1 can vary it');
+		expect(properties?.voice.description).toContain('The Gemini models name one of');
+		expect(properties?.format.description).toContain('The Gemini models store only wav');
 	});
 
 	// The range belongs to the model, not to the tool: it lives in that
