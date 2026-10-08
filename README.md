@@ -115,11 +115,11 @@ request Access did not match, which is what makes Managed OAuth safe to enable
 in front of it. Locally, the `access.dev` block in `wrangler.jsonc` stands in
 for one.
 
-| Address               | Guarded | Why it is open                                                                                          |
-| --------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
-| Custom Domain, routes | yes     | Where callers reach the server                                                                          |
-| `workers.dev`         | yes     | What `wrangler dev` identifies the Access application by, so a local session can reach a remote binding |
-| Preview URLs          | yes     | Created per version by the platform                                                                     |
+| Address               | Open | Why                                                                                                                                                               |
+| --------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Custom Domain, routes | yes  | Where callers reach the server                                                                                                                                    |
+| Preview URLs          | yes  | Created per version by the platform                                                                                                                               |
+| `workers.dev`         | no   | Nothing reaches the server through it, and `wrangler dev` cannot authenticate through it either, since Managed OAuth answers it 401 rather than with a login page |
 
 ## Backup
 
