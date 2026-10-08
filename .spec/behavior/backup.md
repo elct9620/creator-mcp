@@ -44,10 +44,10 @@ generation is paid for the moment it is made and a refusal afterwards would
 charge for nothing. The rule rides in the tool's own schema, so a caller can
 read it rather than discover it.
 
-A deployment that keeps no copies takes the name all the same and does nothing
-with it. What a tool offers should not turn on a secret the caller cannot see,
-or the same client would find the same server different from one deployment to
-the next.
+A deployment that keeps no copies does not offer `name` at all. A tool that
+takes an argument and does nothing with it tells a caller something untrue, and
+that costs more than a client finding one deployment's tools different from
+another's: what a tool offers is what this deployment can do.
 
 The encoding a copy is named for is the one the reply states, read from the
 store the same way it is when no copy is kept — or, for a file handed over in
@@ -162,10 +162,11 @@ could not be kept to link to.
 
 ## `B-012` The rule a caller can read
 
-| Step | Statement                                        |
-| ---- | ------------------------------------------------ |
-| When | a client lists what the server offers            |
-| Then | each tool's schema states what a `name` may hold |
+| Step  | Statement                                        |
+| ----- | ------------------------------------------------ |
+| Given | a deployment keeping copies                      |
+| When  | a client lists what the server offers            |
+| Then  | each tool's schema states what a `name` may hold |
 
 ## `B-013` A file handed over in the answer
 
@@ -190,3 +191,11 @@ could not be kept to link to.
 | Given | a deployment with `BACKUP` set to `yes` but any of the four signing secrets unset                         |
 | When  | a file is generated                                                                                       |
 | Then  | nothing is written to the bucket, the reply carries the model's own link, and the log names what is unset |
+
+## `B-016` A deployment that keeps no copies offers no name
+
+| Step  | Statement                             |
+| ----- | ------------------------------------- |
+| Given | a deployment keeping no copies        |
+| When  | a client lists what the server offers |
+| Then  | neither tool's schema offers a `name` |

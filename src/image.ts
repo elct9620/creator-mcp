@@ -197,7 +197,7 @@ const outputSchema = z.object({
 });
 
 /** What a caller said, in this tool's words. */
-type Asked = Omit<z.infer<typeof inputSchema>, 'model'>;
+type Asked = Omit<z.infer<typeof inputSchema>, 'model' | 'name'>;
 
 /**
  * A request the chosen model cannot honour is refused before it is sent,
@@ -242,7 +242,8 @@ export const registerCreateImage = (server: McpServer, ai: Ai, backup: Backup | 
 		{
 			title: 'Create image',
 			description: 'Generate an image from a prompt. The reply links to the generated image rather than carrying it.',
-			inputSchema,
+			// A name is taken only where a copy is kept to be called by it.
+			inputSchema: backup ? inputSchema : (inputSchema.omit({ name: true }) as unknown as typeof inputSchema),
 			outputSchema,
 		},
 		async ({ model, name, ...asked }) => {

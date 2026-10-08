@@ -281,7 +281,7 @@ describe('Backup', () => {
 
 	// @behavior B-012
 	it.each(['create_image', 'create_audio'])('should state what a name may hold in the schema %s offers', async (tool) => {
-		client = await connect({});
+		client = await connect({ ...KEEPING });
 
 		const { tools } = await client.listTools();
 
@@ -291,6 +291,17 @@ describe('Backup', () => {
 			pattern: expect.any(String),
 			maxLength: expect.any(Number),
 		});
+	});
+
+	// An argument that does nothing tells a caller something untrue.
+	// @behavior B-016
+	it.each(['create_image', 'create_audio'])('should offer no name in the schema %s offers where no copies are kept', async (tool) => {
+		client = await connect({});
+
+		const { tools } = await client.listTools();
+
+		const { inputSchema } = tools.find(({ name }) => name === tool) ?? {};
+		expect(inputSchema?.properties).not.toHaveProperty('name');
 	});
 
 	// A file handed over in the answer has no store behind it to read from; the

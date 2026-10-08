@@ -15,6 +15,9 @@ const MODELS = ['openai/tts-1', 'elevenlabs/eleven-v3', 'google/gemini-3.8-flash
  */
 const DEFAULT_MODEL = 'google/gemini-3.8-flash-lite-tts';
 
+/** The default where no copies are kept to hand the Gemini models' audio on, and the one model left that can be asked with nothing but text. */
+const DEFAULT_MODEL_WITHOUT_COPIES = 'openai/tts-1';
+
 /**
  * The encodings this tool speaks of. Raw PCM is deliberately absent: it has no
  * container, so a store holding it has nothing to say about what it is, and
@@ -63,6 +66,8 @@ type Speaker = {
 	speed: false | { min: number; max: number };
 	/** The request in the model's own vocabulary. */
 	request: (spoken: Spoken) => Record<string, unknown>;
+	/** Whether it only ever hands its audio over in the answer, which reaches a caller only through a deployment's copy. */
+	handsOver?: true;
 };
 
 /**
@@ -71,6 +76,7 @@ type Speaker = {
  * is never sent.
  */
 const GEMINI: Speaker = {
+	handsOver: true,
 	limit: 10000,
 	voice: 'default',
 	voices: [
@@ -130,33 +136,46 @@ const SPEAKERS: Record<Model, Speaker> = {
 	'google/gemini-3.8-flash-lite-tts': GEMINI,
 };
 
-const inputSchema = z.object({
-	text: z
-		.string()
-		.describe('What should be spoken, word for word. For more on how a model can be steered through it, read the guides with read_guide.'),
-	model: z
-		.enum(MODELS)
-		.default(DEFAULT_MODEL)
-		.describe(
-			'The model to speak with. google/gemini-3.8-flash-lite-tts sounds closest to Mandarin as spoken in Taiwan, and ' +
-				'google/gemini-3.8-flash-tts pronounces most exactly at a higher price. openai/tts-1 is charged by the character ' +
-				'where the Gemini models are charged by the second, which makes it the cheapest for Chinese.',
-		),
-	voice: z
-		.string()
-		.optional()
-		.describe(
-			'Which voice speaks. openai/tts-1 names one of alloy, echo, fable, onyx, nova or shimmer. ' +
-				`The Gemini models name one of ${GEMINI.voices?.join(', ')}. ` +
-				'elevenlabs/eleven-v3 takes an ElevenLabs voice ID, and requires one.',
-		),
-	format: z
-		.enum(FORMATS)
-		.optional()
-		.describe('The encoding the audio is in. elevenlabs/eleven-v3 stores only mp3 or opus. The Gemini models store only wav.'),
-	speed: z.number().optional().describe('How fast the voice speaks. Only openai/tts-1 can vary it, between 0.25 and 4.'),
-	name: nameAsked,
-});
+/**
+ * What this deployment offers: the Gemini models only where copies are kept,
+ * since without one a Gemini call is paid for and then fails.
+ */
+const inputSchemaFor = (keeping: boolean) => {
+	const models = keeping ? MODELS : MODELS.filter((model) => !SPEAKERS[model].handsOver);
+
+	return z.object({
+		text: z
+			.string()
+			.describe(
+				'What should be spoken, word for word. For more on how a model can be steered through it, read the guides with read_guide.',
+			),
+		model: z
+			// Narrowed to what this deployment offers, while still typed as every model the speakers know.
+			.enum(models as unknown as typeof MODELS)
+			.default(keeping ? DEFAULT_MODEL : DEFAULT_MODEL_WITHOUT_COPIES)
+			.describe(
+				keeping
+					? 'The model to speak with. google/gemini-3.8-flash-lite-tts sounds closest to Mandarin as spoken in Taiwan, and ' +
+							'google/gemini-3.8-flash-tts pronounces most exactly at a higher price. openai/tts-1 is charged by the character ' +
+							'where the Gemini models are charged by the second, which makes it the cheapest for Chinese.'
+					: 'The model to speak with. openai/tts-1 is charged by the character, which makes it the cheapest for Chinese.',
+			),
+		voice: z
+			.string()
+			.optional()
+			.describe(
+				'Which voice speaks. openai/tts-1 names one of alloy, echo, fable, onyx, nova or shimmer. ' +
+					`The Gemini models name one of ${GEMINI.voices?.join(', ')}. ` +
+					'elevenlabs/eleven-v3 takes an ElevenLabs voice ID, and requires one.',
+			),
+		format: z
+			.enum(FORMATS)
+			.optional()
+			.describe('The encoding the audio is in. elevenlabs/eleven-v3 stores only mp3 or opus. The Gemini models store only wav.'),
+		speed: z.number().optional().describe('How fast the voice speaks. Only openai/tts-1 can vary it, between 0.25 and 4.'),
+		name: nameAsked,
+	});
+};
 
 const outputSchema = z.object({
 	uri: z.string().describe('Where the generated audio is stored.'),
@@ -164,7 +183,7 @@ const outputSchema = z.object({
 });
 
 /** What a caller said, in this tool's words. */
-type Asked = Omit<z.infer<typeof inputSchema>, 'model'>;
+type Asked = Omit<z.infer<ReturnType<typeof inputSchemaFor>>, 'model' | 'name'>;
 
 /**
  * A request the chosen model cannot honour is refused before it is sent,
@@ -225,7 +244,10 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | 
 		{
 			title: 'Create audio',
 			description: 'Speak text aloud with a text-to-speech model. The reply links to the generated audio rather than carrying it.',
-			inputSchema,
+			// A name is taken only where a copy is kept to be called by it.
+			inputSchema: backup
+				? inputSchemaFor(true)
+				: (inputSchemaFor(false).omit({ name: true }) as unknown as ReturnType<typeof inputSchemaFor>),
 			outputSchema,
 		},
 		async ({ model, name, ...asked }) => {

@@ -28,7 +28,7 @@ Generate an image from a prompt.
 | `resolution`   | `1K`                         | `1K`, `2K`, `4K`; `google/nano-banana-2-lite` and the GPT Image models generate `1K` alone                                                                             |
 | `quality`      | `low`, where it can be named | `low`, `medium`, `high`, `xhigh`, `max`, `auto`; only the GPT Image models take one                                                                                    |
 | `background`   | the model's own              | `transparent`, `opaque`; only the GPT Image models leave it transparent, and never as `jpg`                                                                            |
-| `name`         | the time of day alone        | What to call this file where the deployment [keeps copies](#backup). Up to 64 characters, and no slashes                                                               |
+| `name`         | the time of day alone        | What to call this file where the deployment [keeps copies](#backup), and offered only there. Up to 64 characters, and no slashes                                       |
 
 Google's tiers run `google/nano-banana-pro`, `google/nano-banana-2`, then
 `google/nano-banana-2.1` and `google/nano-banana-2-lite` from dearest to
@@ -40,19 +40,21 @@ Of the GPT Image models, `openai/gpt-image-2.5-flare` is the faster and
 
 Speak text aloud with a text-to-speech model.
 
-| Argument | Default                            | Accepts                                                                                                                                                                                                                                      |
-| -------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `text`   | —                                  | What should be spoken, word for word. Required. How a model can be steered through it is in the [guides](#read_guide)                                                                                                                        |
-| `model`  | `google/gemini-3.8-flash-lite-tts` | `openai/tts-1`, `elevenlabs/eleven-v3`, `google/gemini-3.8-flash-tts`, `google/gemini-3.8-flash-lite-tts`                                                                                                                                    |
-| `voice`  | the model's own                    | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer` for `openai/tts-1`; one of the 30 named in the tool's own schema, such as `Kore` or `Puck`, for the Gemini models; an ElevenLabs voice ID for `elevenlabs/eleven-v3`, which requires one |
-| `format` | the model's own                    | `mp3`, `opus`, `wav`, `aac`, `flac`; `elevenlabs/eleven-v3` stores only `mp3` and `opus`, the Gemini models only `wav`                                                                                                                       |
-| `speed`  | the model's own                    | `0.25` to `4`, and only `openai/tts-1` can vary it                                                                                                                                                                                           |
-| `name`   | the time of day alone              | What to call this file where the deployment [keeps copies](#backup). Up to 64 characters, and no slashes                                                                                                                                     |
+| Argument | Default                                                                        | Accepts                                                                                                                                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `text`   | —                                                                              | What should be spoken, word for word. Required. How a model can be steered through it is in the [guides](#read_guide)                                                                                                                        |
+| `model`  | `google/gemini-3.8-flash-lite-tts`, or `openai/tts-1` where no copies are kept | `openai/tts-1`, `elevenlabs/eleven-v3`, and where the deployment [keeps copies](#backup), `google/gemini-3.8-flash-tts` and `google/gemini-3.8-flash-lite-tts`                                                                               |
+| `voice`  | the model's own                                                                | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer` for `openai/tts-1`; one of the 30 named in the tool's own schema, such as `Kore` or `Puck`, for the Gemini models; an ElevenLabs voice ID for `elevenlabs/eleven-v3`, which requires one |
+| `format` | the model's own                                                                | `mp3`, `opus`, `wav`, `aac`, `flac`; `elevenlabs/eleven-v3` stores only `mp3` and `opus`, the Gemini models only `wav`                                                                                                                       |
+| `speed`  | the model's own                                                                | `0.25` to `4`, and only `openai/tts-1` can vary it                                                                                                                                                                                           |
+| `name`   | the time of day alone                                                          | What to call this file where the deployment [keeps copies](#backup), and offered only there. Up to 64 characters, and no slashes                                                                                                             |
 
 `google/gemini-3.8-flash-lite-tts` speaks Mandarin closest to how people in
 Taiwan do, and `google/gemini-3.8-flash-tts` pronounces most exactly at a higher
 price. `openai/tts-1` is charged by the character where the Gemini models are
-charged by the second, so it is the cheapest for Chinese.
+charged by the second, so it is the cheapest for Chinese. The Gemini models
+only ever hand their audio over in the answer, so they are offered only where a
+copy can be kept to link to it.
 
 An argument is named for what the caller is choosing, never for what one model
 happens to call it; each model is asked in its own words at the moment the

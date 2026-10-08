@@ -28,6 +28,12 @@ pay less names it. Whichever model is the default has to be one that can be
 asked with text alone — a voice is `elevenlabs/eleven-v3`'s to require, not this
 tool's to invent.
 
+The Gemini models only ever hand their audio over in the answer, and audio
+handed over reaches a caller only through a deployment's copy. A deployment
+keeping no copies does not offer them, since every call to one would be paid
+for and then fail; its default is then `openai/tts-1`, the one model left that
+can be asked with text alone.
+
 How a Gemini model can be steered beyond its arguments — tags for a pause or a
 laugh, an audio profile written ahead of the words — is kept in the
 `gemini-tts` guide rather than in this tool's descriptions, which every listing
@@ -109,11 +115,11 @@ in translation rather than refused.
 
 ## `AU-003` The model a caller names nothing for
 
-| Step  | Statement                                          |
-| ----- | -------------------------------------------------- |
-| Given | a call naming no model                             |
-| When  | `create_audio` is called                           |
-| Then  | `google/gemini-3.8-flash-lite-tts` speaks the text |
+| Step  | Statement                                               |
+| ----- | ------------------------------------------------------- |
+| Given | a call naming no model, and a deployment keeping copies |
+| When  | `create_audio` is called                                |
+| Then  | `google/gemini-3.8-flash-lite-tts` speaks the text      |
 
 ## `AU-004` Each model is asked in its own words
 
@@ -314,3 +320,19 @@ in translation rather than refused.
 | Given | an endpoint serving the tool                    |
 | When  | a client lists the tools                        |
 | Then  | `create_audio` points to `read_guide` on `text` |
+
+## `AU-029` A deployment that keeps no copies offers no model that hands audio over
+
+| Step  | Statement                                                                        |
+| ----- | -------------------------------------------------------------------------------- |
+| Given | a deployment keeping no copies                                                   |
+| When  | a client lists the tools                                                         |
+| Then  | `create_audio` offers neither Gemini model, and names `openai/tts-1` the default |
+
+## `AU-030` The default where no model that hands audio over is offered
+
+| Step  | Statement                                                  |
+| ----- | ---------------------------------------------------------- |
+| Given | a call naming no model, and a deployment keeping no copies |
+| When  | `create_audio` is called                                   |
+| Then  | `openai/tts-1` speaks the text                             |

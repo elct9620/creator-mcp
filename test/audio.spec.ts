@@ -66,8 +66,19 @@ const connect = async (ai: Ai, AI_GATEWAY?: string, deployment: Record<string, u
 	return client;
 };
 
+// A deployment keeping copies, which is the only one that offers the models
+// handing their audio over, and the only one that can link to what they hand.
+const KEEPING = {
+	BACKUP: 'yes',
+	R2_ACCOUNT_ID: 'stand-in-account',
+	R2_ACCESS_KEY_ID: 'stand-in-key',
+	R2_SECRET_ACCESS_KEY: 'stand-in-secret',
+	R2_BUCKET_NAME: 'stand-in-bucket',
+};
+
 let client: Client;
 let generations: Generation[];
+let workersAi: ReturnType<typeof aiAnswering>;
 
 beforeAll(() => network.enable());
 afterAll(() => network.disable());
@@ -76,10 +87,16 @@ beforeEach(async () => {
 	ranges = [];
 	network.resetHandlers(storeHolding('audio/mpeg'));
 
-	const workersAi = aiAnswering(answering(AUDIO));
+	workersAi = aiAnswering(answering(AUDIO));
 	generations = workersAi.generations;
 	client = await connect(workersAi.ai);
 });
+
+/** Serves the rest of a test from a deployment keeping copies, where the Gemini models are offered. */
+const keepingCopies = async () => {
+	await client.close();
+	client = await connect(workersAi.ai, undefined, KEEPING);
+};
 
 afterEach(() => client.close());
 
@@ -110,6 +127,7 @@ describe('audio generation', () => {
 
 	// @behavior AU-003
 	it('should speak with gemini-3.8-flash-lite-tts when no model is named', async () => {
+		await keepingCopies();
 		await createAudio({ text: 'the tide is turning' });
 
 		expect(generations[0].model).toBe('google/gemini-3.8-flash-lite-tts');
@@ -133,6 +151,7 @@ describe('audio generation', () => {
 	it.each(['google/gemini-3.8-flash-tts', 'google/gemini-3.8-flash-lite-tts'])(
 		'should ask %s in its own words when it is the model',
 		async (model) => {
+			await keepingCopies();
 			await createAudio({ text: 'the tide is turning', model, voice: 'Kore' });
 
 			expect(generations[0].inputs).toStrictEqual({ text: 'the tide is turning', voice: 'Kore' });
@@ -143,6 +162,7 @@ describe('audio generation', () => {
 	// there is no key to send it under.
 	// @behavior AU-027
 	it('should speak without an encoding when a model that gives only wav is asked for wav', async () => {
+		await keepingCopies();
 		await createAudio({ text: 'the tide is turning', model: 'google/gemini-3.8-flash-tts', format: 'wav' });
 
 		expect(generations[0].inputs).toStrictEqual({ text: 'the tide is turning' });
@@ -266,6 +286,7 @@ describe('audio generation', () => {
 		['openai/tts-1', 4097],
 		['google/gemini-3.8-flash-lite-tts', 10001],
 	])('should refuse when the text is longer than %s speaks', async (model, length) => {
+		await keepingCopies();
 		const result = await createAudio({ text: 'a'.repeat(length), model });
 
 		expect(result.isError).toBe(true);
@@ -285,6 +306,7 @@ describe('audio generation', () => {
 		['openai/tts-1', 'JBFqnCBsd6RMkjVDRZzb'],
 		['google/gemini-3.8-flash-tts', 'nova'],
 	])('should refuse a voice %s does not have', async (model, voice) => {
+		await keepingCopies();
 		const result = await createAudio({ text: 'the tide is turning', model, voice });
 
 		expect(result.isError).toBe(true);
@@ -293,6 +315,7 @@ describe('audio generation', () => {
 
 	// @behavior AU-018
 	it('should refuse an encoding other than wav from a Gemini model', async () => {
+		await keepingCopies();
 		const result = await createAudio({ text: 'the tide is turning', model: 'google/gemini-3.8-flash-lite-tts', format: 'mp3' });
 
 		expect(result.isError).toBe(true);
@@ -301,6 +324,7 @@ describe('audio generation', () => {
 
 	// @behavior AU-019
 	it('should refuse a speed from a Gemini model', async () => {
+		await keepingCopies();
 		const result = await createAudio({ text: 'the tide is turning', model: 'google/gemini-3.8-flash-tts', speed: 1.5 });
 
 		expect(result.isError).toBe(true);
@@ -385,15 +409,6 @@ describe('audio generation', () => {
 	// Which shape an answer comes in decides the reply, whatever model gave it,
 	// so these name a model that has so far always answered with a link.
 	describe('when the model answers with the audio itself', () => {
-		// A deployment keeping copies, which is the only one audio handed over
-		// can be linked through.
-		const KEEPING = {
-			BACKUP: 'yes',
-			R2_ACCOUNT_ID: 'stand-in-account',
-			R2_ACCESS_KEY_ID: 'stand-in-key',
-			R2_SECRET_ACCESS_KEY: 'stand-in-secret',
-			R2_BUCKET_NAME: 'stand-in-bucket',
-		};
 		const COPY = /^https:\/\/stand-in-account\.r2\.cloudflarestorage\.com\/stand-in-bucket\/backup\/.+\.wav\?/;
 
 		let carried: Client;
@@ -436,6 +451,26 @@ describe('audio generation', () => {
 			expect(textIn(content)).toMatchObject({ text: expect.stringContaining(uri) });
 			expect(textIn(content)).toMatchObject({ text: expect.stringContaining('a day') });
 		});
+	});
+
+	// Every call to a model that only hands its audio over would be paid for
+	// and then fail where nothing can keep it, so such a deployment offers none.
+	// @behavior AU-029
+	it('should offer no model that hands audio over where no copies are kept', async () => {
+		const { tools } = await client.listTools();
+		const model = (
+			tools.find(({ name }) => name === 'create_audio')?.inputSchema.properties as Record<string, { enum?: string[]; default?: string }>
+		)?.model;
+
+		expect(model?.enum).toStrictEqual(['openai/tts-1', 'elevenlabs/eleven-v3']);
+		expect(model?.default).toBe('openai/tts-1');
+	});
+
+	// @behavior AU-030
+	it('should speak with tts-1 when no model is named where no copies are kept', async () => {
+		await createAudio({ text: 'the tide is turning' });
+
+		expect(generations[0].model).toBe('openai/tts-1');
 	});
 
 	// Steering a model beyond its arguments is the guide's to say, so the one
