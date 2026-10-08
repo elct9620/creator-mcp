@@ -26,6 +26,18 @@
 	},
 	"upload_source_maps": true,
 	/**
+	 * Guides are written as Markdown and read as strings, so the text a caller
+	 * reads is the file a person edits rather than a copy of it in code.
+	 * https://developers.cloudflare.com/workers/wrangler/bundling/
+	 */
+	"rules": [
+		{
+			"type": "Text",
+			"globs": ["**/*.md"],
+			"fallthrough": true,
+		},
+	],
+	/**
 	 * Cloudflare Access is attached to this Worker rather than to a hostname,
 	 * so it already covers every route, Custom Domain, preview and the
 	 * workers.dev subdomain. That subdomain stays open because `wrangler dev`

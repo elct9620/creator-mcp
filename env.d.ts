@@ -20,3 +20,9 @@ interface Env {
 	 */
 	TZ?: string;
 }
+
+/** A Markdown file, which the `Text` rule in wrangler.jsonc hands over as its contents. */
+declare module '*.md' {
+	const text: string;
+	export default text;
+}

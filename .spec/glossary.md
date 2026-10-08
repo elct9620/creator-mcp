@@ -81,3 +81,14 @@ different lengths of time, and one word for both would leave neither sentence
 readable. The bucket is not named for backups either: `backup/` is a prefix
 inside it, because a bucket whose root fills with files of no stated kind
 cannot later say what else it holds.
+
+## guide
+
+What a caller can read about using a tool beyond the tool's own description:
+one Markdown file, named in its front matter with a line saying what it is for,
+handed back whole when `read_guide` is asked for it.
+
+Turned down is `skill`, which names the same shape elsewhere but a thing an
+agent carries with it; a guide stays with this server and is read through it.
+Turned down as well is putting the same words in a tool's description, which is
+paid for on every call whether or not anyone needs them.

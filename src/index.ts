@@ -4,6 +4,7 @@ import { name, version } from '../package.json';
 import { accessGuard, accessOf } from './access';
 import { registerCreateAudio } from './audio';
 import { backupFor } from './backup';
+import { registerReadGuide } from './guide';
 import { registerCreateImage } from './image';
 
 const gatewayFor = ({ AI_GATEWAY }: Env): AiOptions | undefined => (AI_GATEWAY ? { gateway: { id: AI_GATEWAY } } : undefined);
@@ -22,6 +23,7 @@ const handlerFor = (env: Env, executionCtx: unknown) =>
 		const backup = backupFor(env, accessOf(executionCtx));
 		registerCreateImage(server, env.AI, backup, gateway);
 		registerCreateAudio(server, env.AI, backup, gateway);
+		registerReadGuide(server);
 
 		return server;
 	});
