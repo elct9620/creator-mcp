@@ -3,11 +3,19 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	test: {
-		// A file's first request also loads the Worker, which takes seconds when
-		// every file loads one at once. That wait is the pool's rather than the
-		// behaviour under test, so it is allowed for wherever the first request
-		// happens to fall.
-		testTimeout: 15_000,
+		// Every test file loads the Worker afresh, and left alone that means
+		// transforming each of these packages module by module, every time —
+		// most of what a run spends. Bundled once into a file apiece, they load
+		// as a whole instead.
+		// https://vitest.dev/guide/profiling-test-performance.html
+		deps: {
+			optimizer: {
+				ssr: {
+					enabled: true,
+					include: ['@modelcontextprotocol/server', '@modelcontextprotocol/client', 'zod', 'hono', 'msw', '@msw/cloudflare'],
+				},
+			},
+		},
 	},
 	plugins: [
 		cloudflareTest({
