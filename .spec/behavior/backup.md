@@ -8,17 +8,18 @@ Anything else, an unset secret included, leaves the copying off.
 
 The reply then links to the copy rather than to the model's own store. A file
 handed over in the answer has no link of its own, and a client that cannot
-show it leaves the person nothing to fetch; a link in text is the one form
-every client passes on, so the copy is what gives every file one. Its link is
+show it leaves the person nothing to fetch; a link stated in text asks no
+client to show any particular kind of content, so the copy is what gives every
+file one. Its link is
 presigned through R2's S3 API with credentials of the deployment's own, since
 the bucket binding reads and writes but cannot sign, and it stands for a day,
 as the model's own link does, so a caller's sense of how long they have does
 not turn on which of the two they were handed.
 
 Signing needs the bucket's name, and nothing in the repository can state it:
-the bucket a deploy creates is named after the Worker as the dashboard names
-it, which a fork need not share, and the binding cannot say at runtime which
-bucket it is. So the deployment states it, beside the credentials, in
+the bucket a deploy creates takes the Worker's name as its prefix, and a fork's
+Worker need not carry this one's name; nor can the binding say at runtime
+which bucket it is. So the deployment states it, beside the credentials, in
 `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and
 `R2_BUCKET_NAME`. A deployment that asks for copies without all four leaves
 the copying off, because a copy it could not link to would hand a caller a link
