@@ -1,8 +1,8 @@
 /**
- * What the models this application generates with have in common: each stores
- * what it made and answers with a link to it, and the link is the whole of
- * what the reply carries. Reading that link out of the answer, and asking the
- * store what it holds, is the same work whichever tool asked.
+ * What the models this application generates with have in common: most often
+ * each stores what it made and answers with a link to it, and otherwise hands
+ * the file over in the answer itself. Reading either out of the answer, and
+ * asking the store what a link holds, is the same work whichever tool asked.
  */
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
@@ -20,6 +20,24 @@ export const linkFrom = (answer: Record<string, unknown>, kind: 'image' | 'audio
 	if (typeof link !== 'string') throw new Error(`The model answered without a link to the ${kind}.`);
 
 	return link;
+};
+
+/** A file handed over in the answer itself: its bytes as base64, and the encoding the answer states. */
+export type Carried = { data: string; mimeType: string };
+
+const CARRIED = /^data:([^;,]+);base64,(.*)$/s;
+
+/**
+ * The file an answer hands over itself, as a `data:` URL with no envelope
+ * around it, or nothing when the answer carries none. Which shape an answer
+ * comes in is the answer's to decide rather than the model's, so this is asked
+ * of every answer before a link is looked for.
+ */
+export const carriedFrom = (answer: Record<string, unknown>, kind: 'image' | 'audio'): Carried | undefined => {
+	const value = answer[kind];
+	const match = typeof value === 'string' ? CARRIED.exec(value) : null;
+
+	return match ? { mimeType: match[1], data: match[2] } : undefined;
 };
 
 // Long enough for a store that is answering, short enough that one which is

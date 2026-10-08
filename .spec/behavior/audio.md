@@ -29,6 +29,19 @@ encoding is read from the store rather than from the request; and the reply
 states the link three ways, because a resource link, structured content and text
 each reach a different reader.
 
+A model may instead hand the audio over in the answer itself, as base64 in a
+`data:` URL. Which of the two an answer is decides the reply, and the model
+named does not: nothing promises that one model answers the same way twice, and
+an answer that was a link once could be carried the next time or the other way
+round. Audio handed over is carried on as the protocol's own audio content
+rather than stored anywhere first — the bytes are already in hand, and putting
+them somewhere only to link back to them would add a store this application
+otherwise never needs. The encoding is the one the `data:` URL states, there
+being no store to ask. A text block still goes with it saying the audio is
+carried rather than linked, because a client that shows nothing for audio
+content would otherwise show nothing at all, and the structured content states
+the encoding alone, there being no link to state.
+
 The spoken text is not repeated as the resource link's title. A prompt
 describing an image is short enough to name it; the words of a recording are the
 content itself, and thousands of them are not a label.
@@ -104,11 +117,11 @@ in translation rather than refused.
 
 ## `AU-008` A model answering without a link
 
-| Step  | Statement                               |
-| ----- | --------------------------------------- |
-| Given | an answer carrying no link to the audio |
-| When  | `create_audio` replies                  |
-| Then  | the call fails                          |
+| Step  | Statement                                                    |
+| ----- | ------------------------------------------------------------ |
+| Given | an answer carrying neither a link to the audio nor the audio |
+| When  | `create_audio` replies                                       |
+| Then  | the call fails                                               |
 
 ## `AU-009` An encoding nobody can give
 
@@ -229,3 +242,27 @@ in translation rather than refused.
 | Given | a speed outside the range the chosen model speaks in |
 | When  | `create_audio` is called                             |
 | Then  | the call fails and nothing reaches the model         |
+
+## `AU-024` Audio handed over in the answer
+
+| Step  | Statement                                                        |
+| ----- | ---------------------------------------------------------------- |
+| Given | a model answering with the audio itself rather than a link to it |
+| When  | `create_audio` replies                                           |
+| Then  | the reply carries that audio, in the encoding the answer states  |
+
+## `AU-025` Audio carried rather than linked says so
+
+| Step  | Statement                                                        |
+| ----- | ---------------------------------------------------------------- |
+| Given | a model answering with the audio itself rather than a link to it |
+| When  | `create_audio` replies                                           |
+| Then  | the reply says in text that the audio is carried, not linked     |
+
+## `AU-026` Structured content with no link to state
+
+| Step  | Statement                                                        |
+| ----- | ---------------------------------------------------------------- |
+| Given | a model answering with the audio itself rather than a link to it |
+| When  | `create_audio` replies                                           |
+| Then  | the structured content carries the encoding alone                |

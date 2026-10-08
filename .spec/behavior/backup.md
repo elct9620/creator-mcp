@@ -1,10 +1,11 @@
 # Backup
 
 What a deployment keeps for itself. A model stores what it generated and
-answers with a link that stands for about a day; a deployment that wants the
-file to outlive that sets `BACKUP` to `yes`, and a copy is written into its own
-bucket while the reply goes on carrying the model's link unchanged. Anything
-else, an unset secret included, leaves the copying off.
+answers with a link that stands for about a day, or hands the file over in the
+answer itself and keeps nothing; a deployment that wants the file to outlive
+either sets `BACKUP` to `yes`, and a copy is written into its own bucket while
+the reply goes on as it would have without one. Anything else, an unset secret
+included, leaves the copying off.
 
 Who a copy belongs to comes from Cloudflare Access, which resolved the caller
 before the request arrived. The path is `backup/{user}/{date}/{name}`, and each
@@ -31,7 +32,8 @@ or the same client would find the same server different from one deployment to
 the next.
 
 The encoding a copy is named for is the one the reply states, read from the
-store the same way it is when no copy is kept. Taking it from the copy's own
+store the same way it is when no copy is kept — or, for a file handed over in
+the answer, the one the answer states. Taking it from the copy's own
 answer would save asking twice, at the cost of two paths deciding what a file
 is; a name and a reply that could disagree costs more than the request does.
 
@@ -43,7 +45,8 @@ go on. Three things make one impossible: a caller Access resolved no address
 for; a source that will not say how long it is, since a stream can only be
 written when its length is known ahead of it and finding that out by reading
 the file in whole is what this Worker declines to do; and a bucket that
-refuses the write.
+refuses the write. A file handed over in the answer is already in hand with
+its length known, so the second of these never applies to it.
 
 ## Includes
 
@@ -143,3 +146,11 @@ refuses the write.
 | ---- | ------------------------------------------------ |
 | When | a client lists what the server offers            |
 | Then | each tool's schema states what a `name` may hold |
+
+## `B-013` A file handed over in the answer
+
+| Step  | Statement                                                                           |
+| ----- | ----------------------------------------------------------------------------------- |
+| Given | a deployment with `BACKUP` set to `yes`, and a model answering with the file itself |
+| When  | the file is generated                                                               |
+| Then  | a copy of it is written at `backup/{user}/{date}/{name}`                            |

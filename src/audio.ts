@@ -2,13 +2,9 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { nameAsked, type Backup } from './backup';
 import { named } from './named';
-import { linkFrom, storedEncodingOf } from './stored';
+import { carriedFrom, linkFrom, storedEncodingOf, type Carried } from './stored';
 
-/**
- * The models this tool speaks with. Each one answers with a link to what it
- * stored rather than with the audio itself; a model that returns audio bytes
- * would need a different reply and does not belong on this list.
- */
+/** The models this tool speaks with. */
 const MODELS = ['openai/tts-1', 'elevenlabs/eleven-v3'] as const;
 
 /**
@@ -101,8 +97,8 @@ const inputSchema = z.object({
 });
 
 const outputSchema = z.object({
-	uri: z.string().describe('Where the generated audio is stored.'),
-	mime_type: z.string().optional().describe('What the stored audio is encoded as, when it can be known.'),
+	uri: z.string().optional().describe('Where the generated audio is stored, when the model stored it rather than handing it over.'),
+	mime_type: z.string().optional().describe('What the audio is encoded as, when it can be known.'),
 });
 
 /** What a caller said, in this tool's words. */
@@ -144,12 +140,27 @@ const refuseWhatItCannotDo = (model: Model, { text, voice, format, speed }: Aske
 		throw new Error(`${model} speaks between ${speaker.speed.min} and ${speaker.speed.max} times its own pace.`);
 };
 
+/**
+ * The reply for audio the model handed over rather than stored: there is no
+ * link to state, so the audio itself is carried, and a text block still says
+ * so for a client that shows nothing for audio content.
+ */
+const carriedReply = ({ data, mimeType }: Carried) => ({
+	content: [
+		{ type: 'audio' as const, data, mimeType },
+		{ type: 'text' as const, text: `The audio is carried in this reply as ${mimeType}. There is no link to it, so save it from here.` },
+	],
+	structuredContent: { mime_type: mimeType },
+});
+
 export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | undefined, options?: AiOptions) =>
 	server.registerTool(
 		'create_audio',
 		{
 			title: 'Create audio',
-			description: 'Speak text aloud with a text-to-speech model. The reply links to the generated audio rather than carrying it.',
+			description:
+				'Speak text aloud with a text-to-speech model. The reply links to the generated audio, or carries it ' +
+				'when the model hands the audio over rather than storing it.',
 			inputSchema,
 			outputSchema,
 		},
@@ -159,6 +170,14 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | 
 			const speaker = SPEAKERS[model];
 			const stored = asked.format ? speaker.formats[asked.format] : undefined;
 			const answer = await ai.run(model, named(speaker.request({ ...asked, format: stored })), options);
+
+			const carried = carriedFrom(answer, 'audio');
+			if (carried) {
+				await backup?.(carried, { extension: EXTENSIONS[carried.mimeType], name });
+
+				return carriedReply(carried);
+			}
+
 			const link = linkFrom(answer, 'audio');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;

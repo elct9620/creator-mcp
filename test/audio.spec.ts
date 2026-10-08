@@ -33,6 +33,12 @@ const storeRefusing = () => http.get(AUDIO_PATH, () => new HttpResponse(null, { 
 // answers and not others, which is why nothing but the link is read.
 const answering = (audio: string) => ({ state: 'Completed', result: { audio } });
 
+// The other shape an answer comes in, as a Gemini model was seen to give it:
+// the audio itself as a `data:` URL, with no envelope around it. These bytes
+// are a WAV header's first four, which is all a test needs to follow.
+const CARRIED_DATA = 'UklGRg==';
+const carrying = { audio: `data:audio/wav;base64,${CARRIED_DATA}` };
+
 const ENDPOINT = new URL('https://creator.example.com/mcp');
 
 // A binding assigned here is what the Worker answers with, so every client
@@ -81,6 +87,7 @@ type Content = Awaited<ReturnType<Client['callTool']>>['content'];
 // A promise about the link or the text is a promise about that block, not about
 // where in the reply it sits.
 const linkIn = (content: Content) => content?.find(({ type }) => type === 'resource_link');
+const audioIn = (content: Content) => content?.find(({ type }) => type === 'audio');
 const textIn = (content: Content) => content?.find(({ type }) => type === 'text');
 
 describe('audio generation', () => {
@@ -210,10 +217,10 @@ describe('audio generation', () => {
 	it('should state the shape of its reply when a client lists the tools', async () => {
 		const { tools } = await client.listTools();
 
-		expect(tools.find(({ name }) => name === 'create_audio')?.outputSchema).toMatchObject({
-			properties: { uri: { type: 'string' }, mime_type: { type: 'string' } },
-			required: ['uri'],
-		});
+		const outputSchema = tools.find(({ name }) => name === 'create_audio')?.outputSchema;
+		expect(outputSchema).toMatchObject({ properties: { uri: { type: 'string' }, mime_type: { type: 'string' } } });
+		// Audio handed over in the answer has no link, so a reply need not state one.
+		expect(outputSchema?.required ?? []).not.toContain('uri');
 	});
 
 	// @behavior AU-014
@@ -327,5 +334,42 @@ describe('audio generation', () => {
 
 		expect(result.isError).toBe(true);
 		expect(generations).toHaveLength(0);
+	});
+
+	// Which shape an answer comes in decides the reply, whatever model gave it,
+	// so these name a model that has so far always answered with a link.
+	describe('when the model answers with the audio itself', () => {
+		let carried: Client;
+
+		beforeEach(async () => {
+			carried = await connect(aiAnswering(carrying).ai);
+		});
+
+		afterEach(() => carried.close());
+
+		const createCarried = () =>
+			carried.callTool({ name: 'create_audio', arguments: { text: 'the tide is turning', model: 'openai/tts-1' } });
+
+		// @behavior AU-024
+		it('should carry the audio in the encoding the answer states', async () => {
+			const { content } = await createCarried();
+
+			expect(audioIn(content)).toStrictEqual({ type: 'audio', data: CARRIED_DATA, mimeType: 'audio/wav' });
+			expect(linkIn(content)).toBeUndefined();
+		});
+
+		// @behavior AU-025
+		it('should say in text that the audio is carried rather than linked', async () => {
+			const { content } = await createCarried();
+
+			expect(textIn(content)).toMatchObject({ text: expect.stringMatching(/in this reply/) });
+		});
+
+		// @behavior AU-026
+		it('should carry the encoding alone as structured content', async () => {
+			const { structuredContent } = await createCarried();
+
+			expect(structuredContent).toStrictEqual({ mime_type: 'audio/wav' });
+		});
 	});
 });

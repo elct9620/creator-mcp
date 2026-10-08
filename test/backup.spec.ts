@@ -56,8 +56,8 @@ const answering = (image: string) => ({ state: 'Completed', result: { image } })
  * reads is stated on each connection, so what the last test set never decides
  * what the next one observes.
  */
-const connect = async (deployment: Record<string, unknown>, matched = asMatched) => {
-	const workersAi = aiAnswering(answering(IMAGE));
+const connect = async (deployment: Record<string, unknown>, matched = asMatched, answer: Record<string, unknown> = answering(IMAGE)) => {
+	const workersAi = aiAnswering(answer);
 	generations = workersAi.generations;
 	Object.assign(env, { AI: workersAi.ai, BUCKET, BACKUP: undefined, TZ: undefined }, deployment);
 
@@ -221,5 +221,18 @@ describe('Backup', () => {
 			pattern: expect.any(String),
 			maxLength: expect.any(Number),
 		});
+	});
+
+	// A file handed over in the answer has no store behind it to read from; the
+	// bytes the answer carried are what the copy holds.
+	// @behavior B-013
+	it('should keep a copy of a file the model handed over in the answer', async () => {
+		client = await connect({ BACKUP: 'yes' }, asMatched, { audio: `data:audio/wav;base64,${btoa(BYTES)}` });
+
+		await client.callTool({ name: 'create_audio', arguments: { text: 'the tide is turning' } });
+
+		const [key] = await kept();
+		expect(key).toMatch(new RegExp(`^backup/${USER}/2026-09-23/163045-[0-9a-f]{4}\\.wav$`));
+		expect(await (await BUCKET.get(key))?.text()).toBe(BYTES);
 	});
 });

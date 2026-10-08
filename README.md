@@ -3,12 +3,14 @@
 An MCP server on Cloudflare Workers that turns a prompt into an image and text
 into speech, using Workers AI.
 
-Each model stores what it made and answers with a presigned link that stands for
-about a day, and the reply hands that link on as given — as a resource link, as
-structured content, and as text, because a different reader needs each one.
-Nothing generated passes through the Worker to do that; it does only where a
-deployment [asks for backups](#backup), and then each file streams through on
-its way to that deployment's own bucket.
+A model most often stores what it made and answers with a presigned link that
+stands for about a day, and the reply hands that link on as given — as a
+resource link, as structured content, and as text, because a different reader
+needs each one. Nothing generated passes through the Worker to do that; it does
+only where a deployment [asks for backups](#backup), and then each file streams
+through on its way to that deployment's own bucket. Audio a model hands over in
+its answer instead is carried in the reply as audio content, since there is no
+link to give.
 
 ## Tools
 
@@ -101,10 +103,10 @@ for one.
 
 ## Backup
 
-A model's link stands for about a day. A deployment that wants what was
-generated to outlive that sets `BACKUP` to `yes`, and every generated file is
-copied into its bucket on the way out while the reply goes on carrying the
-model's own link. A copy that cannot be made says why in the log and changes
+A model's link stands for about a day, and audio carried in a reply is kept
+nowhere at all. A deployment that wants what was generated to outlive that sets
+`BACKUP` to `yes`, and every generated file is copied into its bucket on the way
+out while the reply goes on as it would have without one. A copy that cannot be made says why in the log and changes
 nothing the caller sees, because they have already paid for the generation.
 
 | Part of `backup/{user}/{date}/{name}` | What it holds                                                                            |

@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import type { Carried } from './stored';
 
 /** The one value that turns the copying on. Anything else leaves it off. */
 const ON = 'yes';
@@ -43,8 +44,8 @@ export const nameAsked = z
 /** What the caller said about the file, in the words the path is built from. */
 export type Called = { extension?: string; name?: string };
 
-/** Keeps a copy of what the link holds. It never rejects, and never changes the reply. */
-export type Backup = (link: string, called: Called) => Promise<void>;
+/** Keeps a copy of what the link holds, or of the file handed over. It never rejects, and never changes the reply. */
+export type Backup = (source: string | Carried, called: Called) => Promise<void>;
 
 const userOf = async (email: string) => {
 	const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email));
@@ -105,7 +106,12 @@ const pathFor = async (email: string, zone: string | undefined, { extension, nam
 	return `${PREFIX}/${await userOf(email)}/${day}/${called}`;
 };
 
-const keep = async ({ BUCKET, TZ }: Env, access: CloudflareAccessContext | undefined, link: string, called: Called): Promise<void> => {
+const keep = async (
+	{ BUCKET, TZ }: Env,
+	access: CloudflareAccessContext | undefined,
+	from: string | Carried,
+	called: Called,
+): Promise<void> => {
 	const email = (await access?.getIdentity())?.email;
 	if (!email) {
 		console.warn('Backup is on, but Access resolved no address for this caller. Nothing was kept.');
@@ -113,7 +119,19 @@ const keep = async ({ BUCKET, TZ }: Env, access: CloudflareAccessContext | undef
 		return;
 	}
 
-	const source = await fetch(link);
+	if (typeof from !== 'string') {
+		await BUCKET.put(
+			await pathFor(email, TZ, called),
+			Uint8Array.from(atob(from.data), (char) => char.charCodeAt(0)),
+			{
+				httpMetadata: { contentType: from.mimeType },
+			},
+		);
+
+		return;
+	}
+
+	const source = await fetch(from);
 	if (!source.ok || !source.body) {
 		console.warn(`Backup is on, but the store answered ${source.status}. Nothing was kept.`);
 		await source.body?.cancel();
@@ -143,9 +161,9 @@ const keep = async ({ BUCKET, TZ }: Env, access: CloudflareAccessContext | undef
  */
 export const backupFor = (env: Env, access: CloudflareAccessContext | undefined): Backup | undefined =>
 	env.BACKUP === ON
-		? async (link, extension) => {
+		? async (source, called) => {
 				try {
-					await keep(env, access, link, extension);
+					await keep(env, access, source, called);
 				} catch (error) {
 					console.error('Backup is on, but the copy could not be kept.', error);
 				}
