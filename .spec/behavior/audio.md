@@ -28,15 +28,22 @@ pay less names it. Whichever model is the default has to be one that can be
 asked with text alone — a voice is `elevenlabs/eleven-v3`'s to require, not this
 tool's to invent.
 
-How a Gemini model should sound cannot be steered by writing it into the text:
-an instruction there is read aloud with the rest, and the field Google provides
-for it, `speech_metadata.style`, is refused by the binding. So nothing in this
-tool suggests it. What the text can carry is a tag in angle brackets for a
-pause or a human sound — `<short pause>`, `<long pause>`, `<laugh>`, `<sigh>`,
-`<breath>`, `<cough>` — which a Gemini model performs rather than reads, and
-which Cloudflare's own examples pass in the text. The description of `text`
-names them, since nothing else would tell a caller they exist; Google keeps them
-in English whatever language the text is in.
+How a Gemini model can be steered beyond its arguments — tags for a pause or a
+laugh, an audio profile written ahead of the words — is kept in the
+`gemini-tts` guide rather than in this tool's descriptions, which every listing
+reads whether or not anyone needs it. The description of `text` says only what
+the argument is and that `read_guide` holds the rest. The field Google provides
+for delivery, `speech_metadata.style`, is refused by the binding, so what the
+text itself can carry is all there is.
+
+A Gemini model given no voice speaks with a different one on every call, and
+none is chosen for it here. Whether the same speaker matters is the caller's to
+say, by naming one; the guide says that naming one is how to keep it.
+
+The sampling a Gemini model admits — `temperature`, `topP`, `topK` — is not
+among the arguments. Lowered, it was heard to run on far past the words into
+silence, seven to thirteen times as long as the speech itself, so there is no
+value a caller could safely ask for; left alone, the model's own answers.
 
 A Gemini model always answers in WAV and has no word for an encoding. Asking it
 for `wav` asks for what it already gives, so that is let through and nothing
@@ -298,3 +305,11 @@ in translation rather than refused.
 | Given | `wav` and a model that has no word for an encoding |
 | When  | `create_audio` is called                           |
 | Then  | the model speaks, and is not asked for an encoding |
+
+## `AU-028` The tool says where more is written
+
+| Step  | Statement                                       |
+| ----- | ----------------------------------------------- |
+| Given | an endpoint serving the tool                    |
+| When  | a client lists the tools                        |
+| Then  | `create_audio` points to `read_guide` on `text` |

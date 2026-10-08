@@ -41,7 +41,7 @@ Speak text aloud with a text-to-speech model.
 
 | Argument | Default                            | Accepts                                                                                                                                                                                                                                      |
 | -------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `text`   | —                                  | What should be spoken, word for word. Required. The Gemini models perform tags such as `<short pause>` or `<laugh>` in it                                                                                                                    |
+| `text`   | —                                  | What should be spoken, word for word. Required. How a model can be steered through it is in the [guides](#read_guide)                                                                                                                        |
 | `model`  | `google/gemini-3.8-flash-lite-tts` | `openai/tts-1`, `elevenlabs/eleven-v3`, `google/gemini-3.8-flash-tts`, `google/gemini-3.8-flash-lite-tts`                                                                                                                                    |
 | `voice`  | the model's own                    | `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer` for `openai/tts-1`; one of the 30 named in the tool's own schema, such as `Kore` or `Puck`, for the Gemini models; an ElevenLabs voice ID for `elevenlabs/eleven-v3`, which requires one |
 | `format` | the model's own                    | `mp3`, `opus`, `wav`, `aac`, `flac`; `elevenlabs/eleven-v3` stores only `mp3` and `opus`, the Gemini models only `wav`                                                                                                                       |
@@ -57,6 +57,21 @@ An argument is named for what the caller is choosing, never for what one model
 happens to call it; each model is asked in its own words at the moment the
 request is made. A request the chosen model cannot honour is refused before it
 is sent, and the refusal names what would let the call through.
+
+### `read_guide`
+
+Read how to use the other tools beyond what their own descriptions say.
+
+| Argument | Default | Accepts                                                                        |
+| -------- | ------- | ------------------------------------------------------------------------------ |
+| `name`   | —       | `gemini-tts`, on steering how the Gemini text-to-speech models speak. Required |
+
+A tool's description is read on every listing, so it holds only what every call
+needs; longer know-how lives in guides, read on asking the way an agent skill
+is. Each guide is a Markdown file in `src/guides/` whose front matter gives its
+name and one line on what it is for — the line the tool lists it by. Adding one
+is that file and an import in `src/guide.ts`. A guide says what was heard to
+work, and where that rests on behaviour a provider does not document.
 
 ## Requirements
 

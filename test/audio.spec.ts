@@ -366,7 +366,6 @@ describe('audio generation', () => {
 		expect(properties?.speed.description).toContain('Only openai/tts-1 can vary it');
 		expect(properties?.voice.description).toContain('The Gemini models name one of');
 		expect(properties?.format.description).toContain('The Gemini models store only wav');
-		expect(properties?.text.description).toContain('The Gemini models perform tags such as <short pause>');
 	});
 
 	// The range belongs to the model, not to the tool: it lives in that
@@ -415,5 +414,16 @@ describe('audio generation', () => {
 
 			expect(structuredContent).toStrictEqual({ mime_type: 'audio/wav' });
 		});
+	});
+
+	// Steering a model beyond its arguments is the guide's to say, so the one
+	// argument every call fills is where a caller learns that it exists.
+	// @behavior AU-028
+	it('should point to the guides on the text it speaks', async () => {
+		const { tools } = await client.listTools();
+		const properties = tools.find(({ name }) => name === 'create_audio')?.inputSchema.properties as
+			Record<string, { description?: string }> | undefined;
+
+		expect(properties?.text.description).toContain('read_guide');
 	});
 });

@@ -133,11 +133,7 @@ const SPEAKERS: Record<Model, Speaker> = {
 const inputSchema = z.object({
 	text: z
 		.string()
-		.describe(
-			'What should be spoken, word for word: an instruction about how to say it is read aloud too. ' +
-				'The Gemini models perform tags such as <short pause>, <long pause>, <laugh>, <sigh>, <breath> or <cough> ' +
-				'written into the text, kept in English whatever its language.',
-		),
+		.describe('What should be spoken, word for word. For more on how a model can be steered through it, read the guides with read_guide.'),
 	model: z
 		.enum(MODELS)
 		.default(DEFAULT_MODEL)
