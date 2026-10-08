@@ -16,9 +16,15 @@ const gatewayFor = ({ AI_GATEWAY }: Env): AiOptions | undefined => (AI_GATEWAY ?
 // Building the handler here instead costs well under a microsecond and keeps
 // nothing between requests, which is what lets this Worker serve MCP without a
 // Durable Object.
+// Not every client hands these to its model, so they repeat what the tools
+// already say rather than carry anything only they would.
+const INSTRUCTIONS =
+	'Generates images and speech with Workers AI. Each tool describes what every call needs; ' +
+	'how to use them beyond that is in the guides, which read_guide lists and reads.';
+
 const handlerFor = (env: Env, executionCtx: unknown) =>
 	createMcpHandler(() => {
-		const server = new McpServer({ name, version });
+		const server = new McpServer({ name, version }, { instructions: INSTRUCTIONS });
 		const gateway = gatewayFor(env);
 		const backup = backupFor(env, accessOf(executionCtx));
 		registerCreateImage(server, env.AI, backup, gateway);

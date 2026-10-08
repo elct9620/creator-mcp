@@ -31,4 +31,9 @@ describe('MCP endpoint', () => {
 	it('should answer a ping', async () => {
 		await expect(client.ping()).resolves.toEqual({});
 	});
+
+	// @behavior M-002
+	it('should point to the guides in its instructions', () => {
+		expect(client.getInstructions()).toContain('read_guide');
+	});
 });
