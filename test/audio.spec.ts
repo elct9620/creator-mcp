@@ -366,6 +366,7 @@ describe('audio generation', () => {
 		expect(properties?.speed.description).toContain('Only openai/tts-1 can vary it');
 		expect(properties?.voice.description).toContain('The Gemini models name one of');
 		expect(properties?.format.description).toContain('The Gemini models store only wav');
+		expect(properties?.text.description).toContain('The Gemini models perform tags such as <short pause>');
 	});
 
 	// The range belongs to the model, not to the tool: it lives in that

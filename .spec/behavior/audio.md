@@ -29,8 +29,14 @@ asked with text alone — a voice is `elevenlabs/eleven-v3`'s to require, not th
 tool's to invent.
 
 How a Gemini model should sound cannot be steered by writing it into the text:
-an instruction there is read aloud with the rest. So nothing in this tool
-suggests it.
+an instruction there is read aloud with the rest, and the field Google provides
+for it, `speech_metadata.style`, is refused by the binding. So nothing in this
+tool suggests it. What the text can carry is a tag in angle brackets for a
+pause or a human sound — `<short pause>`, `<long pause>`, `<laugh>`, `<sigh>`,
+`<breath>`, `<cough>` — which a Gemini model performs rather than reads, and
+which Cloudflare's own examples pass in the text. The description of `text`
+names them, since nothing else would tell a caller they exist; Google keeps them
+in English whatever language the text is in.
 
 A Gemini model always answers in WAV and has no word for an encoding. Asking it
 for `wav` asks for what it already gives, so that is let through and nothing
