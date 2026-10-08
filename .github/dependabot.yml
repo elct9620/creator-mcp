@@ -1,0 +1,33 @@
+# A newly published version waits out a cooldown before it is proposed, so a
+# compromised release has time to be noticed and pulled. Security updates are
+# not delayed by it.
+version: 2
+updates:
+  # pnpm lockfiles are updated through the npm ecosystem.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+      semver-major-days: 7
+      semver-minor-days: 5
+    # Minor and patch updates share one pull request; a major update keeps its
+    # own, since it is the one that may need code to change with it.
+    groups:
+      minor-and-patch:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  # GitHub Actions supports no per-SemVer cooldown, only the default.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 3
+    # The workflow pins only a handful of actions, so one pull request is
+    # enough for all of them.
+    groups:
+      actions:
+        patterns: ['*']
