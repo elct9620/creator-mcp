@@ -149,9 +149,16 @@ const keep = async (
 		return;
 	}
 
-	await BUCKET.put(await pathFor(email, TZ, called), source.body, {
-		httpMetadata: { contentType: source.headers.get(TYPE) ?? undefined },
-	});
+	// The length the store stated is what the stream is written as, rather
+	// than whatever the runtime happens to track for the body it was handed.
+	const path = await pathFor(email, TZ, called);
+	const sized = new FixedLengthStream(Number(source.headers.get(LENGTH)));
+	await Promise.all([
+		source.body.pipeTo(sized.writable),
+		BUCKET.put(path, sized.readable, {
+			httpMetadata: { contentType: source.headers.get(TYPE) ?? undefined },
+		}),
+	]);
 };
 
 /**
