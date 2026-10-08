@@ -22,8 +22,8 @@ importers:
         specifier: ^1.0.0
         version: 1.1.4(@vitest/runner@4.1.11)(@vitest/snapshot@4.1.11)(vitest@4.1.11(@types/node@26.4.1)(msw@2.15.0(@types/node@26.4.1)(typescript@5.9.3))(vite@8.2.2(@types/node@26.4.1)(esbuild@0.28.1)))
       '@modelcontextprotocol/client':
-        specifier: 2.0.0
-        version: 2.0.0
+        specifier: 2.2.0
+        version: 2.2.0
       '@msw/cloudflare':
         specifier: ^0.0.1
         version: 0.0.1(msw@2.15.0(@types/node@26.4.1)(typescript@5.9.3))
@@ -665,12 +665,16 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-  '@modelcontextprotocol/client@2.0.0':
-    resolution: {integrity: sha512-8f1OghQ2rjzIOfqgUCP+8GiUWqRs89njoWLNqAe8kWmDePv3s1fZXseej+QXemssEuuOvLLmLO/kqM3IQHtISw==}
+  '@modelcontextprotocol/client@2.2.0':
+    resolution: {integrity: sha512-LxCou/CSYQ6dwEnjhLZY0KnEuc8V4UJ3IEQCl/uR2yHobSQIEdJKUlKLRYRF5i5FqRGHy1eK7une3aAWDHLtig==}
     engines: {node: '>=20'}
 
   '@modelcontextprotocol/core@2.0.0':
     resolution: {integrity: sha512-pJCEwGG7Lfr/+PQp9ZTwKXNeO5wzbfKL7H3MYpCorM4oFBoQrdjnBgEoqG+RjhsvS1FKrDbKux+M1HhlnGWqcA==}
+    engines: {node: '>=20'}
+
+  '@modelcontextprotocol/core@2.2.0':
+    resolution: {integrity: sha512-iLhmprRmWI8EcosOA3wVvww22z02NkgqhV4fBH6f/odQBsi7xnJc0HGmi21yWO+/iKw2yzqVE127Zhna5/+JXw==}
     engines: {node: '>=20'}
 
   '@modelcontextprotocol/server@2.0.0':
@@ -1837,9 +1841,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
 
-  '@modelcontextprotocol/client@2.0.0':
+  '@modelcontextprotocol/client@2.2.0':
     dependencies:
-      '@modelcontextprotocol/core': 2.0.0
+      '@modelcontextprotocol/core': 2.2.0
       cross-spawn: 7.0.6
       eventsource: 3.0.7
       eventsource-parser: 3.1.1
@@ -1848,6 +1852,10 @@ snapshots:
       zod: 4.5.4
 
   '@modelcontextprotocol/core@2.0.0':
+    dependencies:
+      zod: 4.5.4
+
+  '@modelcontextprotocol/core@2.2.0':
     dependencies:
       zod: 4.5.4
 
