@@ -10,8 +10,8 @@ resource link, as structured content, and as text, because a different reader
 needs each one. Nothing generated passes through the Worker to do that; it does
 only where a deployment [asks for backups](#backup), and then each file streams
 through on its way to that deployment's own bucket. Audio a model hands over in
-its answer instead is carried in the reply as audio content, since there is no
-link to give.
+its answer instead has no link of its own, so only a deployment keeping copies
+can hand it on, through the link to its copy.
 
 ## Tools
 
@@ -98,13 +98,13 @@ fake AI instead, so `pnpm test:run` costs nothing.
 
 ## Configuration
 
-| Name                                                        | Where                         | Purpose                                                                                                                                                 |
-| ----------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AI_GATEWAY`                                                | a secret; `.dev.vars` locally | The AI Gateway inference is reached through, which decides how it is billed and rate limited. Leave it unset and the account's default gateway answers. |
-| `BACKUP`                                                    | a secret; `.dev.vars` locally | Whether a generated file is copied into the bucket as well as linked. Only `yes` turns it on; anything else, unset included, leaves it off.             |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | a secret; `.dev.vars` locally | The account and an R2 API token able to read the bucket, which sign the link to a [copy](#backup).                                                      |
-| `R2_BUCKET_NAME`                                            | a secret; `.dev.vars` locally | The bucket `BUCKET` is bound to, as the R2 page names it — usually `<Worker name>-bucket`.                                                              |
-| `TZ`                                                        | a secret; `.dev.vars` locally | The time zone the date in a backup's path is read in, as an IANA name such as `Asia/Taipei`. Unset, or naming no real zone, reads it in UTC.            |
+| Name                                                        | Where                         | Purpose                                                                                                                                                       |
+| ----------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AI_GATEWAY`                                                | a secret; `.dev.vars` locally | The AI Gateway inference is reached through, which decides how it is billed and rate limited. Leave it unset and the account's default gateway answers.       |
+| `BACKUP`                                                    | a secret; `.dev.vars` locally | Whether a generated file is copied into the bucket as well as linked. Only `yes` turns it on; anything else, unset included, leaves it off.                   |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | a secret; `.dev.vars` locally | The account and an R2 API token, which sign the link to a [copy](#backup). Object Read only, scoped to this bucket, is enough: writes go through the binding. |
+| `R2_BUCKET_NAME`                                            | a secret; `.dev.vars` locally | The bucket `BUCKET` is bound to, as the R2 page names it — usually `<Worker name>-bucket`.                                                                    |
+| `TZ`                                                        | a secret; `.dev.vars` locally | The time zone the date in a backup's path is read in, as an IANA name such as `Asia/Taipei`. Unset, or naming no real zone, reads it in UTC.                  |
 
 `wrangler.jsonc` deliberately declares none of these: a var of the same name is
 uploaded over the secret on every deploy. Set each with
@@ -126,16 +126,17 @@ for one.
 
 ## Backup
 
-A model's link stands for about a day, and audio carried in a reply is kept
-nowhere at all. A deployment that wants what was generated to outlive that sets
+A model's link stands for about a day, and audio a model hands over in its
+answer has no link at all. A deployment that wants what was generated to outlive that sets
 `BACKUP` to `yes`, and every generated file is copied into its bucket on the way
 out; the reply then links to the copy, presigned for a day through R2's S3 API.
 Signing takes an R2 API token and the bucket's name, which the binding cannot
 say: the first deploy names it after the Worker as the dashboard names it, so
-it is usually `<Worker name>-bucket`, and the R2 page shows it. Without all
+it is usually `<Worker name>-bucket`. Without all
 four signing secrets nothing is copied. A copy that cannot be made says why in
 the log and leaves the model's own link in the reply, because the caller has
-already paid for the generation.
+already paid for the generation; audio handed over has no such link, so that
+call fails instead.
 
 | Part of `backup/{user}/{date}/{name}` | What it holds                                                                            |
 | ------------------------------------- | ---------------------------------------------------------------------------------------- |

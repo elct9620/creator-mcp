@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
 import { nameAsked, type Backup } from './backup';
 import { named } from './named';
-import { carriedFrom, linkFrom, storedEncodingOf, type Carried } from './stored';
+import { carriedFrom, linkFrom, storedEncodingOf } from './stored';
 
 /** The models this tool speaks with. */
 const MODELS = ['openai/tts-1', 'elevenlabs/eleven-v3', 'google/gemini-3.8-flash-tts', 'google/gemini-3.8-flash-lite-tts'] as const;
@@ -159,7 +159,7 @@ const inputSchema = z.object({
 });
 
 const outputSchema = z.object({
-	uri: z.string().optional().describe('Where the generated audio is stored, when the model stored it rather than handing it over.'),
+	uri: z.string().describe('Where the generated audio is stored.'),
 	mime_type: z.string().optional().describe('What the audio is encoded as, when it can be known.'),
 });
 
@@ -202,17 +202,21 @@ const refuseWhatItCannotDo = (model: Model, { text, voice, format, speed }: Aske
 		throw new Error(`${model} speaks between ${speaker.speed.min} and ${speaker.speed.max} times its own pace.`);
 };
 
-/**
- * The reply for audio the model handed over rather than stored: there is no
- * link to state, so the audio itself is carried, and a text block still says
- * so for a client that shows nothing for audio content.
- */
-const carriedReply = ({ data, mimeType }: Carried) => ({
+/** The reply linking to the audio, wherever it is stored: a resource link, structured content and text each reach a different reader. */
+const linkedReply = (link: string, mimeType: string | undefined) => ({
 	content: [
-		{ type: 'audio' as const, data, mimeType },
-		{ type: 'text' as const, text: `The audio is carried in this reply as ${mimeType}. There is no link to it, so save it from here.` },
+		{
+			type: 'resource_link' as const,
+			uri: link,
+			name: 'generated-audio',
+			mimeType,
+		},
+		{
+			type: 'text' as const,
+			text: `The audio is at ${link}. That link works for about a day, so save the file before then.`,
+		},
 	],
-	structuredContent: { mime_type: mimeType },
+	structuredContent: { uri: link, mime_type: mimeType },
 });
 
 export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | undefined, options?: AiOptions) =>
@@ -220,9 +224,7 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | 
 		'create_audio',
 		{
 			title: 'Create audio',
-			description:
-				'Speak text aloud with a text-to-speech model. The reply links to the generated audio, or carries it ' +
-				'when the model hands the audio over rather than storing it.',
+			description: 'Speak text aloud with a text-to-speech model. The reply links to the generated audio rather than carrying it.',
 			inputSchema,
 			outputSchema,
 		},
@@ -235,31 +237,18 @@ export const registerCreateAudio = (server: McpServer, ai: Ai, backup: Backup | 
 
 			const carried = carriedFrom(answer, 'audio');
 			if (carried) {
-				await backup?.(carried, { extension: EXTENSIONS[carried.mimeType], name });
+				const copy = await backup?.(carried, { extension: EXTENSIONS[carried.mimeType], name });
+				if (!copy)
+					throw new Error('The model handed the audio over rather than storing it, and it could not be kept anywhere a link could reach.');
 
-				return carriedReply(carried);
+				return linkedReply(copy, carried.mimeType);
 			}
 
 			const link = linkFrom(answer, 'audio');
 			const fallback = asked.format ? MIME_TYPES[asked.format] : undefined;
 			const mimeType = (await storedEncodingOf(link)) ?? fallback;
 			const copy = await backup?.(link, { extension: mimeType ? EXTENSIONS[mimeType] : undefined, name });
-			const delivered = copy ?? link;
 
-			return {
-				content: [
-					{
-						type: 'resource_link',
-						uri: delivered,
-						name: 'generated-audio',
-						mimeType,
-					},
-					{
-						type: 'text',
-						text: `The audio is at ${delivered}. That link works for about a day, so save the file before then.`,
-					},
-				],
-				structuredContent: { uri: delivered, mime_type: mimeType },
-			};
+			return linkedReply(copy ?? link, mimeType);
 		},
 	);

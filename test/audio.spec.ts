@@ -49,8 +49,11 @@ const ENDPOINT = new URL('https://creator.example.com/mcp');
 // a secret, so naming none here leaves the binding undefined; backups are named
 // off, because what this feature promises is what a deployment keeping no
 // copies sees.
-const connect = async (ai: Ai, AI_GATEWAY?: string) => {
-	Object.assign(env, { AI: ai, AI_GATEWAY, BACKUP: undefined });
+// The bucket the pool simulates, held before any test swaps a refusing one in.
+const BUCKET = env.BUCKET;
+
+const connect = async (ai: Ai, AI_GATEWAY?: string, deployment: Record<string, unknown> = {}) => {
+	Object.assign(env, { AI: ai, AI_GATEWAY, BUCKET, BACKUP: undefined }, deployment);
 
 	const client = new Client({ name: 'test-harness', version: '0.0.0' });
 	await client.connect(
@@ -238,8 +241,8 @@ describe('audio generation', () => {
 
 		const outputSchema = tools.find(({ name }) => name === 'create_audio')?.outputSchema;
 		expect(outputSchema).toMatchObject({ properties: { uri: { type: 'string' }, mime_type: { type: 'string' } } });
-		// Audio handed over in the answer has no link, so a reply need not state one.
-		expect(outputSchema?.required ?? []).not.toContain('uri');
+		// Audio handed over in the answer is linked through the copy, so every reply states a link.
+		expect(outputSchema?.required ?? []).toContain('uri');
 	});
 
 	// @behavior AU-014
@@ -382,37 +385,56 @@ describe('audio generation', () => {
 	// Which shape an answer comes in decides the reply, whatever model gave it,
 	// so these name a model that has so far always answered with a link.
 	describe('when the model answers with the audio itself', () => {
-		let carried: Client;
+		// A deployment keeping copies, which is the only one audio handed over
+		// can be linked through.
+		const KEEPING = {
+			BACKUP: 'yes',
+			R2_ACCOUNT_ID: 'stand-in-account',
+			R2_ACCESS_KEY_ID: 'stand-in-key',
+			R2_SECRET_ACCESS_KEY: 'stand-in-secret',
+			R2_BUCKET_NAME: 'stand-in-bucket',
+		};
+		const COPY = /^https:\/\/stand-in-account\.r2\.cloudflarestorage\.com\/stand-in-bucket\/backup\/.+\.wav\?/;
 
-		beforeEach(async () => {
-			carried = await connect(aiAnswering(carrying).ai);
-		});
+		let carried: Client;
 
 		afterEach(() => carried.close());
 
-		const createCarried = () =>
-			carried.callTool({ name: 'create_audio', arguments: { text: 'the tide is turning', model: 'openai/tts-1' } });
+		const createCarried = async (deployment: Record<string, unknown>) => {
+			carried = await connect(aiAnswering(carrying).ai, undefined, deployment);
+
+			return carried.callTool({ name: 'create_audio', arguments: { text: 'the tide is turning', model: 'openai/tts-1' } });
+		};
 
 		// @behavior AU-024
-		it('should carry the audio in the encoding the answer states', async () => {
-			const { content } = await createCarried();
+		it('should link to the copy rather than carry the audio', async () => {
+			const { content } = await createCarried(KEEPING);
 
-			expect(audioIn(content)).toStrictEqual({ type: 'audio', data: CARRIED_DATA, mimeType: 'audio/wav' });
-			expect(linkIn(content)).toBeUndefined();
+			expect(linkIn(content)).toMatchObject({ uri: expect.stringMatching(COPY), mimeType: 'audio/wav' });
+			expect(audioIn(content)).toBeUndefined();
 		});
 
+		// A deployment that cannot keep the copy has no link to hand on, and an
+		// answer with no audio in it would read as success.
 		// @behavior AU-025
-		it('should say in text that the audio is carried rather than linked', async () => {
-			const { content } = await createCarried();
+		it.each([
+			['keeps no copies', {}],
+			['cannot keep this one', { ...KEEPING, BUCKET: { put: () => Promise.reject(new Error('the bucket refused')) } }],
+		])('should fail saying why when the deployment %s', async (_, deployment) => {
+			const result = await createCarried(deployment);
 
-			expect(textIn(content)).toMatchObject({ text: expect.stringMatching(/in this reply/) });
+			expect(result.isError).toBe(true);
+			expect(textIn(result.content)).toMatchObject({ text: expect.stringContaining('could not be kept') });
 		});
 
 		// @behavior AU-026
-		it('should carry the encoding alone as structured content', async () => {
-			const { structuredContent } = await createCarried();
+		it('should state the link to the copy and how long it stands', async () => {
+			const { content, structuredContent } = await createCarried(KEEPING);
 
-			expect(structuredContent).toStrictEqual({ mime_type: 'audio/wav' });
+			const { uri } = structuredContent as { uri: string };
+			expect(structuredContent).toStrictEqual({ uri: expect.stringMatching(COPY), mime_type: 'audio/wav' });
+			expect(textIn(content)).toMatchObject({ text: expect.stringContaining(uri) });
+			expect(textIn(content)).toMatchObject({ text: expect.stringContaining('a day') });
 		});
 	});
 

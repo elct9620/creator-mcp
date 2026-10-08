@@ -56,15 +56,17 @@ answer would save asking twice, at the cost of two paths deciding what a file
 is; a name and a reply that could disagree costs more than the request does.
 
 A caller has paid for the generation before any of this runs, so nothing here
-may take that away from them: a copy that cannot be made leaves the reply
-exactly as it would have been, and says so in the log with its reason rather
-than to the caller, because a deployment getting no copies has nothing else to
-go on. Three things make one impossible: a caller Access resolved no address
-for; a source that will not say how long it is, since a stream can only be
-written when its length is known ahead of it and finding that out by reading
-the file in whole is what this Worker declines to do; and a bucket that
-refuses the write. A file handed over in the answer is already in hand with
-its length known, so the second of these never applies to it.
+may take that away from them: a copy that cannot be made leaves the model's own
+link in the reply, and the reason goes to the log rather than to the caller,
+because a deployment getting no copies has nothing else to go on. Three things
+make one impossible: a caller Access resolved no address for; a source that
+will not say how long it is, since a stream can only be written when its
+length is known ahead of it and finding that out by reading the file in whole
+is what this Worker declines to do; and a bucket that refuses the write. A
+file handed over in the answer is already in hand with its length known, so
+the second of these never applies to it — but it has no link of its own to
+fall back on, so for it the call fails instead, telling the caller the file
+could not be kept to link to.
 
 ## Includes
 

@@ -65,14 +65,14 @@ A model may instead hand the audio over in the answer itself, as base64 in a
 `data:` URL. Which of the two an answer is decides the reply, and the model
 named does not: nothing promises that one model answers the same way twice, and
 an answer that was a link once could be carried the next time or the other way
-round. Audio handed over is carried on as the protocol's own audio content
-rather than stored anywhere first — the bytes are already in hand, and putting
-them somewhere only to link back to them would add a store this application
-otherwise never needs. The encoding is the one the `data:` URL states, there
-being no store to ask. A text block still goes with it saying the audio is
-carried rather than linked, because a client that shows nothing for audio
-content would otherwise show nothing at all, and the structured content states
-the encoding alone, there being no link to state.
+round. Audio handed over is not carried on as the protocol's own audio content,
+because a client that cannot show it — as Claude's web client cannot — leaves
+the person nothing to fetch, and a client that does read it may spend the whole
+recording as input. It is kept as the deployment's copy instead, and the reply
+links to that copy the way it would link to a model's store, with the encoding
+the `data:` URL states. A deployment that cannot keep the copy has nothing to
+link to, so the call fails and says so rather than answering with no audio at
+all.
 
 The spoken text is not repeated as the resource link's title. A prompt
 describing an image is short enough to name it; the words of a recording are the
@@ -277,27 +277,27 @@ in translation rather than refused.
 
 ## `AU-024` Audio handed over in the answer
 
-| Step  | Statement                                                        |
-| ----- | ---------------------------------------------------------------- |
-| Given | a model answering with the audio itself rather than a link to it |
-| When  | `create_audio` replies                                           |
-| Then  | the reply carries that audio, in the encoding the answer states  |
+| Step  | Statement                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------- |
+| Given | a model answering with the audio itself rather than a link to it, and a deployment keeping copies |
+| When  | `create_audio` replies                                                                            |
+| Then  | the reply links to the copy, in the encoding the answer states, and carries no audio itself       |
 
-## `AU-025` Audio carried rather than linked says so
+## `AU-025` Audio handed over with nowhere to keep it
 
-| Step  | Statement                                                        |
-| ----- | ---------------------------------------------------------------- |
-| Given | a model answering with the audio itself rather than a link to it |
-| When  | `create_audio` replies                                           |
-| Then  | the reply says in text that the audio is carried, not linked     |
+| Step  | Statement                                                                                              |
+| ----- | ------------------------------------------------------------------------------------------------------ |
+| Given | a model answering with the audio itself, and a deployment that keeps no copies or cannot keep this one |
+| When  | `create_audio` replies                                                                                 |
+| Then  | the call fails, saying the audio could not be kept to link to                                          |
 
-## `AU-026` Structured content with no link to state
+## `AU-026` The link to audio handed over reaches the person
 
-| Step  | Statement                                                        |
-| ----- | ---------------------------------------------------------------- |
-| Given | a model answering with the audio itself rather than a link to it |
-| When  | `create_audio` replies                                           |
-| Then  | the structured content carries the encoding alone                |
+| Step  | Statement                                                                                       |
+| ----- | ----------------------------------------------------------------------------------------------- |
+| Given | a model answering with the audio itself, and a deployment keeping copies                        |
+| When  | `create_audio` replies                                                                          |
+| Then  | the structured content and the text state the copy's link, and the text says how long it stands |
 
 ## `AU-027` An encoding the model already gives
 
