@@ -101,10 +101,6 @@ words.
 
 ## `P-008` A failure points to the rules
 
-| Attribute | Value   |
-| --------- | ------- |
-| relates   | `P-007` |
-
 | Step  | Statement                                                   |
 | ----- | ----------------------------------------------------------- |
 | Given | a model that fails with a message                           |
@@ -120,10 +116,6 @@ words.
 | Then  | the response is 403                        |
 
 ## `P-010` How to call it
-
-| Attribute | Value   |
-| --------- | ------- |
-| relates   | `G-003` |
 
 | Step  | Statement                                    |
 | ----- | -------------------------------------------- |
