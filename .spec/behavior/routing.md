@@ -16,7 +16,8 @@ Which paths this application answers, and what it answers for the rest.
 
 ## `R-002` A path no route answers
 
-| Step | Statement                               |
-| ---- | --------------------------------------- |
-| When | a path outside every route is requested |
-| Then | the response is 404                     |
+| Step  | Statement                               |
+| ----- | --------------------------------------- |
+| Given | an application serving its routes       |
+| When  | a path outside every route is requested |
+| Then  | the response is 404                     |
