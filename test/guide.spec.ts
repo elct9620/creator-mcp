@@ -38,7 +38,8 @@ describe('Guides', () => {
 		const tool = await guideTool();
 		const name = (tool?.inputSchema.properties as Record<string, { enum?: string[] }> | undefined)?.name;
 
-		expect(name?.enum).toStrictEqual(['gemini-tts']);
+		expect(name?.enum).toStrictEqual(['api', 'gemini-tts']);
+		expect(tool?.description).toContain('api: How to edit an image, or run any Workers AI model with a payload of your own');
 		expect(tool?.description).toContain('gemini-tts: How to steer the way google/gemini-3.8-flash-tts');
 	});
 
@@ -58,5 +59,15 @@ describe('Guides', () => {
 		const result = await readGuide('no-such-guide');
 
 		expect(result.isError).toBe(true);
+	});
+
+	// An agent holding only `cloudflared` reads the guide from `GET /api`, and
+	// what it reads is what the tool hands back.
+	// @behavior G-003
+	it('should hand back the api guide as GET /api serves it', async () => {
+		const { content } = await readGuide('api');
+		const served = await exports.default.fetch(asMatched(new Request('https://creator.example.com/api')));
+
+		expect(content?.find(({ type }) => type === 'text')).toMatchObject({ text: await served.text() });
 	});
 });

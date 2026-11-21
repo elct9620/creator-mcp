@@ -1,11 +1,13 @@
 import { createMcpHandler, McpServer, originValidationResponse } from '@modelcontextprotocol/server';
 import { Hono } from 'hono';
+import { createMiddleware } from 'hono/factory';
 import { name, version } from '../package.json';
 import { accessGuard, accessOf } from './access';
 import { registerCreateAudio } from './audio';
 import { backupFor } from './backup';
-import { registerReadGuide } from './guide';
+import { guideNamed, registerReadGuide } from './guide';
 import { registerCreateImage } from './image';
+import { runModel } from './proxy';
 
 const gatewayFor = ({ AI_GATEWAY }: Env): AiOptions | undefined => (AI_GATEWAY ? { gateway: { id: AI_GATEWAY } } : undefined);
 
@@ -39,6 +41,10 @@ const handlerFor = (env: Env, executionCtx: unknown) =>
 // acting on a visitor's Access session rather than the visitor's agent.
 const ALLOWED_ORIGINS: string[] = [];
 
+// The same holds under `/api`, which answers in its own words rather than the
+// protocol's, so the refusal is plain rather than a JSON-RPC error.
+const refusingBrowsers = createMiddleware(async (c, next) => (c.req.header('origin') ? c.text('Forbidden', 403) : next()));
+
 const app = new Hono<{ Bindings: Env }>();
 
 // @route GET /
@@ -47,6 +53,14 @@ const app = new Hono<{ Bindings: Env }>();
 app.get('/', (c) => c.text('Coming Soon'));
 
 app.use('/mcp', accessGuard);
+app.use('/api/*', accessGuard, refusingBrowsers);
+
+// @route GET /api
+app.get('/api', (c) => c.body(guideNamed('api'), 200, { 'content-type': 'text/markdown; charset=utf-8' }));
+
+// A model's id carries slashes of its own, so the parameter takes the rest of the path.
+// @route POST /api/ai/run/{model}
+app.post('/api/ai/run/:model{.+}', (c) => runModel(c.env.AI, c.req.param('model'), c.req.raw, gatewayFor(c.env)));
 
 // @route ALL /mcp
 app.all('/mcp', (c) => originValidationResponse(c.req.raw, ALLOWED_ORIGINS) ?? handlerFor(c.env, c.executionCtx).fetch(c.req.raw));

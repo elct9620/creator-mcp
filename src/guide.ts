@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/server';
 import { z } from 'zod';
+import api from './guides/api.md';
 import geminiTts from './guides/gemini-tts.md';
 
 /** A guide as a caller meets it: a name, the line saying what it is for, and the rest. */
@@ -26,11 +27,14 @@ const guideFrom = (file: string): Guide => {
 	return { name: fields.name, description: fields.description, body: file.slice(match[0].length).trim() };
 };
 
-const GUIDES = [geminiTts].map(guideFrom);
+const GUIDES = [api, geminiTts].map(guideFrom);
 
 const names = GUIDES.map(({ name }) => name) as [string, ...string[]];
 
 const BODIES: Record<string, string> = Object.fromEntries(GUIDES.map(({ name, body }) => [name, body]));
+
+/** What a guide says once its front matter is gone, for a route serving it outside the tool. */
+export const guideNamed = (name: string) => BODIES[name];
 
 export const registerReadGuide = (server: McpServer) =>
 	server.registerTool(

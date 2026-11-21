@@ -65,9 +65,9 @@ is sent, and the refusal names what would let the call through.
 
 Read how to use the other tools beyond what their own descriptions say.
 
-| Argument | Default | Accepts                                                                        |
-| -------- | ------- | ------------------------------------------------------------------------------ |
-| `name`   | —       | `gemini-tts`, on steering how the Gemini text-to-speech models speak. Required |
+| Argument | Default | Accepts                                                                                                          |
+| -------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| `name`   | —       | `api`, on calling [`/api`](#api); `gemini-tts`, on steering how the Gemini text-to-speech models speak. Required |
 
 A tool's description is read on every listing, so it holds only what every call
 needs; longer know-how lives in guides, read on asking the way an agent skill
@@ -75,6 +75,29 @@ is. Each guide is a Markdown file in `src/guides/` whose front matter gives its
 name and one line on what it is for — the line the tool lists it by. Adding one
 is that file and an import in `src/guide.ts`. A guide says what was heard to
 work, and where that rests on behaviour a provider does not document.
+
+## API
+
+A machine with `cloudflared` sends `/api` what the tools cannot carry: an image
+to edit, or a parameter or model no tool offers. It sits behind the same
+[Access](#access). The body is the model's own input as Cloudflare documents
+it, and the response is the model's own answer. Nothing is translated or backed
+up, and any model the account runs is accepted.
+
+| Route                      | Answers                                  |
+| -------------------------- | ---------------------------------------- |
+| `GET /api`                 | The `api` guide, as Markdown             |
+| `POST /api/ai/run/{model}` | The model's own answer, JSON or a stream |
+
+```sh
+cloudflared access curl https://<host>/api/ai/run/google/nano-banana-2.1 \
+  -X POST -H 'content-type: application/json' -d @payload.json
+```
+
+The path ends as Cloudflare's REST endpoint does, so a caller swaps only the
+base of the URL. The REST API's `result` envelope is not added. A body that is
+no JSON object answers 400, and a failing model answers 502 with its own
+message.
 
 ## Requirements
 
@@ -115,7 +138,7 @@ uploaded over the secret on every deploy. Set each with
 ## Access
 
 Cloudflare Access is attached to the Worker rather than to a hostname, so every
-way in is covered by the one application. The `/mcp` endpoint answers 401 to any
+way in is covered by the one application. `/mcp` and `/api` answer 401 to any
 request Access did not match, which is what makes Managed OAuth safe to enable
 in front of it. Locally, the `access.dev` block in `wrangler.jsonc` stands in
 for one.

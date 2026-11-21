@@ -1,6 +1,6 @@
 # Access
 
-What the MCP endpoint requires of a caller. Cloudflare Access guards the
+What the MCP endpoint and everything under `/api` require of a caller. Cloudflare Access guards the
 Worker itself and resolves who the caller is before the request arrives, so
 the origin no longer reads an assertion of its own. What it can still tell
 apart is whether Access matched this request at all: one that reached the
@@ -26,3 +26,11 @@ enable on a server that turns those away.
 | Given | a request Cloudflare Access matched an application on |
 | When  | `/mcp` is requested                                   |
 | Then  | the endpoint answers the request                      |
+
+## `A-003` A caller Access never matched, under `/api`
+
+| Step  | Statement                                                   |
+| ----- | ----------------------------------------------------------- |
+| Given | a request Cloudflare Access did not match an application on |
+| When  | a path under `/api` is requested                            |
+| Then  | the response is 401                                         |

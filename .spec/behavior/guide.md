@@ -23,6 +23,10 @@ them, so a caller sees what exists without reading any of it. Reading one hands
 back what follows the front matter: the name and the line are already known by
 then.
 
+A guide about something reached outside the MCP endpoint is served there too:
+the `api` guide is also what `GET /api` answers with, so an agent that holds
+only `cloudflared` reads the same words as one reading them through the tool.
+
 A guide holds what has been seen to work, and says so where it rests on
 behaviour a provider does not document, since a caller relying on it should
 know it can stop working without anything here changing.
